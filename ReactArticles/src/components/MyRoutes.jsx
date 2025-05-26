@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route } from "react-router-dom";
-import Header from "./Header";
+import MemberHeader from "../pages/MemberView/MemberHeader";
 import Footer from "./Footer";
 import {Navigate} from "react-router-dom";
 import { useState } from "react";
@@ -10,6 +10,9 @@ import TrainerView from "../pages/TrainerView/TrainerView";
 import MemberView from "../pages/MemberView/MemberView";
 import Register from "../pages/Register/Register";
 import NotFound from "../pages/NotFound";
+import RegisterMembership from "../pages/RegisterMembershipView/RegisterMembership";
+import BookView from "../pages/BookView/BookView";
+import MemberShipView from "../pages/MembershipView/MemberShipView";
 function MyRoutes() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   return (
@@ -28,7 +31,7 @@ function MyRoutes() {
         } />
         <Route path="/admin" element={ isLoggedIn ?
           <>
-            <Header />
+     
             <AdminView />
             <Footer />
           </>
@@ -36,7 +39,7 @@ function MyRoutes() {
         } />
         <Route path="/trainer" element={ isLoggedIn ?
           <>
-            <Header />
+       
             <TrainerView />
             <Footer />
           </>
@@ -44,7 +47,7 @@ function MyRoutes() {
         } />
         <Route path="/member" element={ isLoggedIn ?
           <>
-            <Header />
+            <MemberHeader />
             <MemberView />
             <Footer />
           </>
@@ -54,8 +57,14 @@ function MyRoutes() {
           <>
             <Navigate to="/login" />
           </>
-        } />
+        } /> 
+
+        <Route path="/registerMembership" element={<RegisterMembership />} />
+        <Route path="/bookView" element={<BookView />} />
+        <Route path="/membershipView" element={<MemberShipView />} />
+
         <Route path="*" element={<NotFound />} />
+
       </Routes>
     </>
   );

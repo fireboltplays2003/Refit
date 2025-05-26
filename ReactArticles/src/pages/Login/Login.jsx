@@ -22,9 +22,9 @@ export default function Login({setIsLoggedIn}) {
         axios.post("login", { email, password })
             .then((response) => {
                 setIsLoggedIn(true);
-                if (response.data[0].Role === "admin") {
+                if (response.data.Role === "admin") {
                     navigate("/admin");
-                } else if (response.data[0].Role === "trainer") {
+                } else if (response.data.Role === "trainer") {
                     navigate("/trainer");
                 } else {
                     navigate("/member");
