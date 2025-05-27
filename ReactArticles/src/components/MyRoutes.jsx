@@ -3,7 +3,6 @@ import { Routes, Route } from "react-router-dom";
 import MemberHeader from "../pages/MemberView/MemberHeader";
 import Footer from "./Footer";
 import {Navigate} from "react-router-dom";
-import { useState } from "react";
 import Login from "../pages/Login/Login";
 import AdminView from "../pages/AdminView/AdminView"
 import TrainerView from "../pages/TrainerView/TrainerView";
@@ -13,15 +12,16 @@ import NotFound from "../pages/NotFound";
 import RegisterMembership from "../pages/RegisterMembershipView/RegisterMembership";
 import BookView from "../pages/BookView/BookView";
 import MemberShipView from "../pages/MembershipView/MemberShipView";
+import RegisterTrainer from "../pages/ReigsterTrainer/RegisterTrainer";
 function MyRoutes() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  
   return (
     <>
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={
           <>
-            <Login setIsLoggedIn={setIsLoggedIn} />
+            <Login/>
           </>
         } />
         <Route path="/register" element={
@@ -29,29 +29,29 @@ function MyRoutes() {
             <Register />
           </>
         } />
-        <Route path="/admin" element={ isLoggedIn ?
+        <Route path="/admin" element={
           <>
      
             <AdminView />
             <Footer />
           </>
-          : <Navigate to="/login" />
+         
         } />
-        <Route path="/trainer" element={ isLoggedIn ?
+        <Route path="/trainer" element={
           <>
        
             <TrainerView />
             <Footer />
           </>
-          : <Navigate to="/login" />
+         
         } />
-        <Route path="/member" element={ isLoggedIn ?
+        <Route path="/member" element={
           <>
             <MemberHeader />
             <MemberView />
             <Footer />
           </>
-          : <Navigate to="/login" />
+         
         } />
         <Route path="/logout" element={
           <>
@@ -59,10 +59,11 @@ function MyRoutes() {
           </>
         } /> 
 
-        <Route path="/registerMembership" element={<RegisterMembership />} />
+        <Route path="/registerMembership" element={<RegisterMembership />}
+         />
         <Route path="/bookView" element={<BookView />} />
         <Route path="/membershipView" element={<MemberShipView />} />
-
+        <Route path="/registerTrainer" element={<RegisterTrainer />} />
         <Route path="*" element={<NotFound />} />
 
       </Routes>

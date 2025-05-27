@@ -3,14 +3,14 @@ import axios from "axios";
 import classes from "./Register.module.css";
 import { NavLink } from "react-router-dom";
 export default function Register() {
-      
+
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
         phone: "",
         email: "",
         dateOfBirth: "",
-        role: "member",
+        role: "user",
         password: "",
         confirmPassword: ""
     });
@@ -30,7 +30,7 @@ export default function Register() {
             setError("Invalid date of birth");
             return;
         }
-        if(phone.length != 10 || isNaN(phone)){
+        if(phone.length !== 10 || isNaN(phone)){
             setError("Incorrect phone number");
             return;
         }
@@ -39,12 +39,10 @@ export default function Register() {
             setError("Passwords do not match");
             return;
         }
-
         
         fetchData();
     }
     function fetchData(){
-        
         axios.post("register", { firstName, lastName, phone, email, dateOfBirth, role, password })
             .then((response) => {
                 setSuccess("Account created successfully");
@@ -171,11 +169,13 @@ export default function Register() {
             </div>
 
                 
-                {success =="" &&<div style={{color:"red", fontSize:"20px", textAlign:"center"}}>{error}</div>}
-                {error=="" &&<div style={{color:"green", fontSize:"20px", textAlign:"center"}}>{success}</div>}
+                {success ==="" &&<div style={{color:"red", fontSize:"20px", textAlign:"center"}}>{error}</div>}
+                {error==="" &&<div style={{color:"green", fontSize:"20px", textAlign:"center"}}>{success}</div>}
                 
                 <button type="submit" className={classes.loginButton}>Create Account</button>
-                
+                <div className={classes.registerLinkContainer}>
+                Want to become a trainer? <NavLink to="/registerTrainer" className={classes.registerLink}>Sign up as a Trainer</NavLink>
+                </div>
                 <div className={classes.registerLinkContainer}>
                     Already have an account? <NavLink to="/login" className={classes.registerLink}>Sign in</NavLink>
                 </div>

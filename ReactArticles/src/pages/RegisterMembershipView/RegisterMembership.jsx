@@ -1,7 +1,27 @@
 export default function RegisterMembership() {
     return (
         <div>
-            <h1>Register Membership</h1>
+             <form>
+                <div>
+                    <label>
+                        Membership Type:
+                    </label>
+                    <input type="text" />
+                </div>
+                <div>
+                    <label>
+                       Start Date:
+                    </label>
+                    <input type="text" />
+                </div>
+                <div>
+                    <label>
+                        End Date:
+                    </label>
+                    <input type="date" />
+                </div>
+                
+             </form>
         </div>
     );
 }
