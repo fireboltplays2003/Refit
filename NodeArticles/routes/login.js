@@ -38,4 +38,12 @@ router.post("/", (req, res) => {
     });
 });
 
+router.post("/user", (req, res) => {
+    console.log(req.session.user);
+    if (!req.session.user) {
+        return res.status(401).json({ message: "Unauthorized" });
+    }
+   
+    res.json(req.session.user);
+});
 module.exports = router;

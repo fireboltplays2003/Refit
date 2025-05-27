@@ -13,11 +13,15 @@ import RegisterMembership from "../pages/RegisterMembershipView/RegisterMembersh
 import BookView from "../pages/BookView/BookView";
 import MemberShipView from "../pages/MembershipView/MemberShipView";
 import RegisterTrainer from "../pages/ReigsterTrainer/RegisterTrainer";
+import UserView from "../pages/UserView/UserView";
+
 function MyRoutes() {
+ 
   
   return (
     <>
       <Routes>
+        
         <Route path="/" element={<Navigate to="/login" />} />
         <Route path="/login" element={
           <>
@@ -64,6 +68,7 @@ function MyRoutes() {
         <Route path="/bookView" element={<BookView />} />
         <Route path="/membershipView" element={<MemberShipView />} />
         <Route path="/registerTrainer" element={<RegisterTrainer />} />
+        <Route path="/user" element={<UserView />} />
         <Route path="*" element={<NotFound />} />
 
       </Routes>

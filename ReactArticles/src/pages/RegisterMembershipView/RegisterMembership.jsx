@@ -1,27 +1,38 @@
+import { useState } from "react";
 export default function RegisterMembership() {
+    const [membershipType, setMembershipType] = useState("");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
     return (
         <div>
-             <form>
-                <div>
-                    <label>
-                        Membership Type:
-                    </label>
-                    <input type="text" />
-                </div>
-                <div>
-                    <label>
-                       Start Date:
-                    </label>
-                    <input type="text" />
-                </div>
-                <div>
-                    <label>
-                        End Date:
-                    </label>
-                    <input type="date" />
-                </div>
-                
-             </form>
+             <button>
+                <p>Basic</p>
+                <p>Access Level</p>
+                <p>Gym access only</p>
+                <p>Monthly</p>
+                <p>120$</p>
+                <p>Yearly</p>
+                <p>1200$</p>
+             </button>
+             <button>
+                <p>Standard</p>
+                <p>Access Level</p>
+                <p>Gym + 2 free class entries per month</p>
+                <p>Monthly</p>
+                <p>160$</p>
+                <p>Yearly</p>
+                <p>1500$</p>
+             </button>
+             <button>
+                <p>Premium</p>
+                <p>Access Level</p>
+                <p>Gym + 4 free class entries per month</p>
+                <p>Monthly</p>
+                <p>220$</p>
+                <p>Yearly</p>
+                <p>2000$</p>
+             </button>
+          
         </div>
     );
 }
