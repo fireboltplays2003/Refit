@@ -1,84 +1,15 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink } from "react-router-dom";
 
-function MemberHeader() {
+export default function MemberHeader() {
   return (
-    <header>
-      <div className='container'>
-        <div className='header__wrap'>
-          <nav>
-            <ul className='menu'>
-              <li>
-                
-                <NavLink
-                  to='/'
-                  className={({ isActive }) =>
-                    isActive ? 'menu-item active' : 'menu-item'
-                  }
-                  end
-                >
-                  Home
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to='/about'
-                  className={({ isActive }) =>
-                    isActive ? 'menu-item active' : 'menu-item'
-                  }
-                >
-                  About us
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to='/contact'
-                  className={({ isActive }) =>
-                    isActive ? 'menu-item active' : 'menu-item'
-                  }
-                >
-                  Contact us
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to='/registerMembership'
-                  className={({ isActive }) =>
-                    isActive ? 'menu-item active' : 'menu-item'
-                  }
-                  end
-                >
-                  RegisterMembership
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to='/bookView'
-                  className={({ isActive }) =>
-                    isActive ? 'menu-item active' : 'menu-item'
-                  }
-                  end
-                >
-                  BookView
-                </NavLink>
-              </li>
-              <li>
-                <NavLink
-                  to='/membershipView'
-                  className={({ isActive }) =>
-                    isActive ? 'menu-item active' : 'menu-item'
-                  }
-                  end
-                >
-                  Membership
-                </NavLink>
-              </li>
-            </ul>
-          </nav>
-        </div>
-      </div>
+    <header style={{ background: "#f8f8f8", padding: "10px" }}>
+      <nav>
+        <NavLink to="/home" style={{ marginRight: 15 }}>Home</NavLink>
+        <NavLink to="/membership" style={{ marginRight: 15 }}>My Membership</NavLink>
+        <NavLink to="/book" style={{ marginRight: 15 }}>Book Class</NavLink>
+        <NavLink to="/profile" style={{ marginRight: 15 }}>Profile</NavLink>
+        <NavLink to="/logout">Logout</NavLink>
+      </nav>
     </header>
   );
 }
-
-export default MemberHeader;

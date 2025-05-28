@@ -4,6 +4,7 @@ const cors = require("cors");
 const loginRoute = require('./routes/login');
 const registerRoute = require('./routes/register');
 const session = require("express-session");
+const roleAuth = require("./routes/RoleAuth");
 const port = 8801;
 
 app.use(cors({
@@ -32,6 +33,8 @@ app.use(session({
 app.use('/login', loginRoute);
 
 app.use('/register', registerRoute);
+
+app.use('/whoami', roleAuth);
 
 app.use((err, req, res, next) => {
   console.error(err); // Log error

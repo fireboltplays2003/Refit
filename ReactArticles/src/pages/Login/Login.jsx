@@ -29,7 +29,10 @@ export default function Login({ setIsLoggedIn }) {
                         navigate("/admin");
                     } else if (response.data.Role === "trainer") {
                         navigate("/trainer");
-                    } else {
+                    } else if (response.data.Role === "user") {
+                        navigate("/user");
+                    }
+                    else {
                         navigate("/member");
                     }
                 }, 2000);

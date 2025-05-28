@@ -2,11 +2,12 @@ const express = require("express");
 const router = express.Router();
 const dbSingleton = require("../dbSingleton");
 const bcrypt = require('bcrypt');
+
 const db = dbSingleton.getConnection();
 
+//login
 router.post("/", (req, res) => {
     const { email, password } = req.body;
-    console.log(req.body);
    
     const query = "SELECT * FROM users WHERE email = ?";
     db.query(query, [email], (err, results) => {
@@ -21,7 +22,6 @@ router.post("/", (req, res) => {
 
     
         const user = results[0];
-        console.log(user);
         bcrypt.compare(password, user.Password, (err, isMatch) => {
             if (err) {
                 res.status(500).json({ error: "Error comparing passwords" });
@@ -36,14 +36,5 @@ router.post("/", (req, res) => {
             res.json(req.session.user);
         });
     });
-});
-
-router.post("/user", (req, res) => {
-    console.log(req.session.user);
-    if (!req.session.user) {
-        return res.status(401).json({ message: "Unauthorized" });
-    }
-   
-    res.json(req.session.user);
 });
 module.exports = router;
