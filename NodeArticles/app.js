@@ -36,6 +36,7 @@ app.use('/register', registerRoute);
 
 app.use('/whoami', roleAuth);
 
+
 app.use((err, req, res, next) => {
   console.error(err); // Log error
   res.status(500).json({

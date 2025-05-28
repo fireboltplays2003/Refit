@@ -174,7 +174,7 @@ export default function Register() {
                 
                 <button type="submit" className={classes.loginButton}>Create Account</button>
                 <div className={classes.registerLinkContainer}>
-                Want to become a trainer? <NavLink to="/registerTrainer" className={classes.registerLink}>Sign up as a Trainer</NavLink>
+                Want to become a trainer? <NavLink to="/register-trainer" className={classes.registerLink}>Sign up as a Trainer</NavLink>
                 </div>
                 <div className={classes.registerLinkContainer}>
                     Already have an account? <NavLink to="/login" className={classes.registerLink}>Sign in</NavLink>
