@@ -1,0 +1,97 @@
+import { useState, useEffect } from "react";
+import axios from "axios";
+
+export default function AddClassView() {
+  const [classTypes, setClassTypes] = useState([]);
+  const [classTypeId, setClassTypeId] = useState("");
+  const [schedule, setSchedule] = useState("");
+  const [maxParticipants, setMaxParticipants] = useState("");
+  const [trainerId, setTrainerId] = useState(null);
+
+  useEffect(() => {
+    axios.get("http://localhost:8801/trainer/class-types", { withCredentials: true })
+      .then((res) => setClassTypes(res.data))
+      .catch((err) => console.error("Error fetching class types:", err));
+
+    axios.get("http://localhost:8801/whoami", { withCredentials: true })
+      .then((res) => {
+        if (res.data.Role === "trainer") {
+          setTrainerId(res.data.UserID);
+        } else {
+          alert("Only trainers can create classes.");
+        }
+      })
+      .catch((err) => {
+        console.error("Not logged in:", err);
+        alert("Please log in as a trainer.");
+      });
+  }, []);
+
+  function handleSubmit(e) {
+    e.preventDefault();
+
+    if (!trainerId) {
+      alert("Trainer ID not found. Please log in again.");
+      return;
+    }
+    
+
+    axios.post("http://localhost:8801/trainer/create-class", {
+      trainerId,
+      classTypeId,
+      schedule,
+      maxParticipants
+      
+    }
+    , { withCredentials: true })
+      .then(() => {
+        alert("Class created successfully!");
+        setClassTypeId("");
+        setSchedule("");
+        setMaxParticipants("");
+      })
+      .catch((err) => {
+        console.error("Error creating class:", err);
+        alert("Failed to create class.");
+      });
+  }
+
+  return (
+    <div>
+      <h2>Add New Class</h2>
+      <form onSubmit={handleSubmit}>
+        <div>
+          <label>Class Type:</label>
+          <select value={classTypeId} onChange={(e) => setClassTypeId(e.target.value)}>
+            <option value="">-- Select Class Type --</option>
+            {classTypes.map((type) => (
+              <option key={type.id} value={type.id}>{type.type}</option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label>Class Date & Time:</label>
+          <input
+            type="datetime-local"
+            value={schedule}
+            onChange={(e) => setSchedule(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label>Max Participants:</label>
+          <input
+            type="number"
+            value={maxParticipants}
+            onChange={(e) => setMaxParticipants(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <button type="submit">Confirm</button>
+        </div>
+      </form>
+    </div>
+  );
+}

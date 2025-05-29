@@ -7,6 +7,7 @@ const session = require("express-session");
 const roleAuth = require("./routes/RoleAuth");
 const adminRoute = require("./routes/admin");
 const logoutRoute = require("./routes/logout");
+const trainerRoute = require("./routes/trainer");
 const port = 8801;
 
 app.use(cors({
@@ -41,6 +42,8 @@ app.use('/whoami', roleAuth);
 app.use('/admin', adminRoute);
 
 app.use('/logout', logoutRoute);
+
+app.use('/trainer', trainerRoute);
 
 
 app.use((err, req, res, next) => {
