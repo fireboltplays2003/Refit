@@ -71,13 +71,18 @@ export default function AddClassView() {
         </div>
 
         <div>
-          <label>Class Date & Time:</label>
-          <input
-            type="datetime-local"
-            value={schedule}
-            onChange={(e) => setSchedule(e.target.value)}
-          />
-        </div>
+  <label>Class Date & Time:</label>
+  <input
+    type="datetime-local"
+    value={schedule}
+    min={(() => {
+      const date = new Date();
+      date.setHours(date.getHours() + 24);
+      return date.toISOString().slice(0, 16);
+    })()}
+    onChange={(e) => setSchedule(e.target.value)}
+  />
+</div>
 
         <div>
           <label>Max Participants:</label>
