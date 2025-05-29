@@ -1,8 +1,5 @@
-import { useState } from "react";
 export default function RegisterMembership() {
-    const [membershipType, setMembershipType] = useState("");
-    const [startDate, setStartDate] = useState("");
-    const [endDate, setEndDate] = useState("");
+   
     return (
         <div>
              <button>

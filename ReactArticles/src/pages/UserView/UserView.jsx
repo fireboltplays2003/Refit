@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import Footer from "../../components/Footer";
-import UserHeader from "./UserHeader";
 
 export default function UserView() {
   const navigate = useNavigate();
@@ -28,7 +27,7 @@ export default function UserView() {
 
   return (
     <>
-      <UserHeader />
+      
       <div>
         <h2>User Dashboard</h2>
         <div>Welcome, {name}!</div>

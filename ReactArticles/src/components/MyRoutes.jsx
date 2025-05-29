@@ -13,6 +13,9 @@ import MemberShipView from "../pages/MembershipView/MemberShipView";
 import RegisterTrainer from "../pages/ReigsterTrainer/RegisterTrainer";
 import UserView from "../pages/UserView/UserView";
 
+import ReportsPage from "../pages/AdminView/ReportsPage";
+import MembersPage from "../pages/AdminView/MembersPage";
+import ClassesPage from "../pages/AdminView/ClassesPage";
 function MyRoutes() {
  
   
@@ -21,7 +24,6 @@ function MyRoutes() {
     <Route path="/" element={<Navigate to="/login" />} />
     <Route path="/login" element={<Login />} />
     <Route path="/register" element={<Register />} />
-    <Route path="/admin" element={<AdminView />} />
     <Route path="/trainer" element={<TrainerView />} />
     <Route path="/member" element={<MemberView />} />
     <Route path="/user" element={<UserView />} />
@@ -31,6 +33,12 @@ function MyRoutes() {
     <Route path="/membership" element={<MemberShipView />} />
     <Route path="/register-trainer" element={<RegisterTrainer />} />
     <Route path="/logout" element={<Navigate to="/login" />} />
+
+
+    <Route path="/admin" element={<AdminView />} />
+    <Route path="/admin/reports" element={<ReportsPage />} />
+    <Route path="/admin/members" element={<MembersPage />} />
+    <Route path="/admin/classes" element={<ClassesPage />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
   );
