@@ -1,0 +1,132 @@
+
+
+.trainerDashboard {
+    max-width: 900px;
+    margin: 2.5rem auto;
+    padding: 2rem 1.5rem 3rem 1.5rem;
+  }
+  
+  .dashboardHeader {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.07);
+    padding: 2rem 2.2rem 1.5rem 2.2rem;
+    margin-bottom: 2.1rem;
+    text-align: center;
+  }
+  
+  .dashboardHeader h1 {
+    font-size: 2.3rem;
+    font-weight: 800;
+    margin-bottom: 0.7rem;
+    letter-spacing: -1px;
+  }
+  
+  .dashboardHeader p {
+    color: #6c757d;
+    font-size: 1.15rem;
+    margin: 0;
+  }
+  
+  .dashboardStats {
+    display: flex;
+    gap: 1.7rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .statCard {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    padding: 1.4rem 2.1rem;
+    text-align: center;
+    min-width: 160px;
+    margin: 0.2rem 0;
+  }
+  
+  .statCard h3 {
+    font-size: 1.09rem;
+    color: #888;
+    margin-bottom: 0.17rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  
+  .statCard p {
+    font-size: 2.15rem;
+    font-weight: 800;
+    margin: 0;
+    color: #FF6961;
+    letter-spacing: 1px;
+  }
+  
+  .upcomingClasses {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    padding: 2rem;
+    margin-bottom: 1.6rem;
+  }
+  
+  .upcomingClasses h2 {
+    font-size: 1.45rem;
+    margin-bottom: 1rem;
+    font-weight: 700;
+    color: #1b1b1b;
+  }
+  
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 1.07rem;
+  }
+  
+  .table th, .table td {
+    padding: 0.8rem 1rem;
+  }
+  
+  .table th {
+    background: #fff2f1;
+    color: #e84b3c;
+    font-weight: 700;
+    border-bottom: 2px solid #f5c2be;
+    text-align: left;
+    letter-spacing: 0.3px;
+  }
+  
+  .table tbody tr {
+    transition: background 0.18s;
+  }
+  
+  .table tbody tr:hover {
+    background: #fff6f5;
+  }
+  
+  .noClasses {
+    color: #aaa;
+    text-align: center;
+    font-size: 1.13rem;
+    margin: 1.5rem 0 1rem 0;
+  }
+  
+  @media (max-width: 800px) {
+    .trainerDashboard {
+      padding: 0.5rem;
+    }
+    .dashboardHeader,
+    .upcomingClasses {
+      padding: 1rem;
+    }
+    .dashboardStats {
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .statCard {
+      min-width: unset;
+      padding: 1.1rem;
+    }
+  }
+  
+  

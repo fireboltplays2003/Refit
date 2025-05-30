@@ -1,16 +1,24 @@
-import React from 'react'
+import styles from "./Footer.module.css";
 
-function Footer() {
+export default function Footer() {
   return (
-	 <footer>
-		<div className="container ">
-			<div className="footer__wrap">
-
-			</div>
-		</div>
-		Footer
-	 </footer>
-  )
+    <footer className={styles.footer}>
+      <div className={styles.footerContent}>
+        <div className={styles.brand}>
+          <span className={styles.logoR}>R</span>efit
+        </div>
+        <div className={styles.contactInfo}>
+          <div className={styles.contactTitle}>Contact Us</div>
+          <div className={styles.contactEmails}>
+            <a href="mailto:Stephan042003@gmail.com">Stephan042003@gmail.com</a>
+            <span>|</span>
+            <a href="mailto:eliasthedab17@gmail.com">eliasthedab17@gmail.com</a>
+          </div>
+        </div>
+        <div className={styles.copyright}>
+          &copy; {new Date().getFullYear()} Refit. All rights reserved.
+        </div>
+      </div>
+    </footer>
+  );
 }
-
-export default Footer

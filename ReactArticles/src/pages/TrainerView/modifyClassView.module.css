@@ -1,0 +1,118 @@
+.modifyClassContainer {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 6px 32px 0 rgba(50, 50, 50, 0.08);
+    max-width: 480px;
+    margin: 2.5rem auto 3rem auto;
+    padding: 2.5rem 2rem 2.5rem 2rem;
+    min-height: calc(100vh - 12rem);
+  }
+  
+  .modifyClassHeader {
+    font-size: 2rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 1.3rem;
+    color: #232323;
+  }
+  
+  .errorMsg {
+    color: #f44336;
+    font-weight: 600;
+    background: #fff0f0;
+    border-radius: 9px;
+    padding: 0.7rem 1rem;
+    margin-bottom: 1.2rem;
+    text-align: center;
+  }
+  
+  .modifyClassForm label,
+  .formLabel {
+    display: block;
+    font-size: 1.07rem;
+    font-weight: 500;
+    margin-bottom: 0.35rem;
+    color: #333;
+  }
+  
+  .modifyClassForm > div,
+  .modifyClassContainer > div {
+    margin-bottom: 1.1rem;
+  }
+  
+  .modifyClassForm input,
+  .modifyClassForm select,
+  .formInput {
+    width: 100%;
+    padding: 0.65rem;
+    font-size: 1rem;
+    border: 1px solid #e7e7e7;
+    border-radius: 9px;
+    outline: none;
+    margin-bottom: 0.15rem;
+    background: #fafafa;
+    transition: border 0.2s;
+  }
+  .modifyClassForm input:focus,
+  .modifyClassForm select:focus {
+    border: 1.5px solid #ff8d77;
+    background: #fff;
+  }
+  
+  .formBtnRow {
+    display: flex;
+    gap: 1.2rem;
+    justify-content: flex-end;
+  }
+  
+  .updateBtn {
+    background: #ff8070;
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    padding: 0.8rem 1.8rem;
+    font-size: 1.08rem;
+    font-weight: bold;
+    box-shadow: 0 2px 10px 0 rgba(255,128,112,0.11);
+    cursor: pointer;
+    transition: background 0.18s;
+  }
+  
+  .updateBtn:hover {
+    background: #e96248;
+  }
+  
+  .deleteBtn {
+    background: #fff2f1;
+    color: #e84b3c;
+    border: 1px solid #ffccc7;
+    border-radius: 9px;
+    font-weight: bold;
+    padding: 0.8rem 1.8rem;
+    font-size: 1.08rem;
+    cursor: pointer;
+    transition: background 0.16s, color 0.16s;
+  }
+  
+  .deleteBtn:hover {
+    background: #ffe7e5;
+    color: #d32f2f;
+  }
+  
+  @media (max-width: 600px) {
+    .modifyClassContainer {
+      max-width: 98vw;
+      padding: 1.3rem 0.7rem 1.3rem 0.7rem;
+    }
+    .formBtnRow {
+      flex-direction: column;
+      gap: 0.7rem;
+    }
+    .updateBtn,
+    .deleteBtn {
+      width: 100%;
+      padding-left: 0;
+      padding-right: 0;
+    }
+  }
+  

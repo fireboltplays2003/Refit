@@ -1,5 +1,8 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import TrainerHeader from "./TrainerHeader";
+import Footer from "../../components/Footer";
+import styles from "./AddClassView.module.css"; // <<== IMPORT HERE
 
 export default function AddClassView() {
   const [classTypes, setClassTypes] = useState([]);
@@ -34,16 +37,13 @@ export default function AddClassView() {
       alert("Trainer ID not found. Please log in again.");
       return;
     }
-    
 
     axios.post("http://localhost:8801/trainer/create-class", {
       trainerId,
       classTypeId,
       schedule,
       maxParticipants
-      
-    }
-    , { withCredentials: true })
+    }, { withCredentials: true })
       .then(() => {
         alert("Class created successfully!");
         setClassTypeId("");
@@ -58,45 +58,48 @@ export default function AddClassView() {
 
   return (
     <div>
-      <h2>Add New Class</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>Class Type:</label>
-          <select value={classTypeId} onChange={(e) => setClassTypeId(e.target.value)}>
-            <option value="">-- Select Class Type --</option>
-            {classTypes.map((type) => (
-              <option key={type.id} value={type.id}>{type.type}</option>
-            ))}
-          </select>
-        </div>
+      <TrainerHeader />
+      <div className={styles.addClassContainer}>
+        <h2 className={styles.addClassHeader}>Add New Class</h2>
+        <form className={styles.addClassForm} onSubmit={handleSubmit}>
+          <div>
+            <label>Class Type:</label>
+            <select value={classTypeId} onChange={(e) => setClassTypeId(e.target.value)}>
+              <option value="">-- Select Class Type --</option>
+              {classTypes.map((type) => (
+                <option key={type.id} value={type.id}>{type.type}</option>
+              ))}
+            </select>
+          </div>
 
-        <div>
-  <label>Class Date & Time:</label>
-  <input
-    type="datetime-local"
-    value={schedule}
-    min={(() => {
-      const date = new Date();
-      date.setHours(date.getHours() + 24);
-      return date.toISOString().slice(0, 16);
-    })()}
-    onChange={(e) => setSchedule(e.target.value)}
-  />
-</div>
+          <div>
+            <label>Class Date & Time:</label>
+            <input
+              type="datetime-local"
+              value={schedule}
+              min={(() => {
+                const date = new Date();
+                date.setHours(date.getHours() + 24);
+                return date.toISOString().slice(0, 16);
+              })()}
+              onChange={(e) => setSchedule(e.target.value)}
+            />
+          </div>
 
-        <div>
-          <label>Max Participants:</label>
-          <input
-            type="number"
-            value={maxParticipants}
-            onChange={(e) => setMaxParticipants(e.target.value)}
-          />
-        </div>
-
-        <div>
-          <button type="submit">Confirm</button>
-        </div>
-      </form>
+          <div>
+            <label>Max Participants:</label>
+            <input
+              type="number"
+              value={maxParticipants}
+              onChange={(e) => setMaxParticipants(e.target.value)}
+            />
+          </div>
+          <div>
+            <button type="submit">Confirm</button>
+          </div>
+        </form>
+      </div>
+      <Footer />
     </div>
   );
 }

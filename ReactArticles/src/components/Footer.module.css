@@ -1,0 +1,124 @@
+.footer {
+    position: relative;
+    width: 100%;
+    background: #1a1e22;
+    color: #e1e4e8;
+    padding: 1rem 0 0.8rem;
+    border-top: 2px solid #ff6b6b;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: center;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  }
+  
+  .footerContent {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .brand {
+    font-size: 1.5rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: #ff6b6b;
+    margin: 0 0 0.5rem;
+    display: flex;
+    align-items: center;
+  }
+  
+  .logoR {
+    display: inline-block;
+    transform: scaleX(-1) rotate(-10deg);
+    color: #ff6b6b;
+    margin-right: 3px;
+    font-size: 1.2em;
+    font-family: 'Arial Black', 'Arial Bold', Arial, sans-serif;
+    font-weight: 900;
+    line-height: 1;
+  }
+  
+  .copyright {
+    color: #8b949e;
+    font-size: 0.75rem;
+    margin: 0.5rem 0 0;
+    font-weight: 400;
+  }
+  
+  .contactInfo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 0.8rem;
+  }
+  
+  .contactTitle {
+    font-weight: 600;
+    color: #ff6b6b;
+    margin: 0 0 0.4rem;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .contactEmails {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin: 0;
+  }
+  
+  .contactEmails a {
+    color: #e1e4e8;
+    text-decoration: none;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
+    font-weight: 500;
+  }
+  
+  .contactEmails a:hover {
+    color: #ff6b6b;
+    background: rgba(255, 255, 255, 0.08);
+    transform: translateY(-1px);
+  }
+  
+  .contactEmails span {
+    color: #666;
+    user-select: none;
+  }
+  
+  /* Responsive tweaks */
+  @media (max-width: 768px) {
+    .footer {
+      padding: 1rem 1rem 0.8rem;
+    }
+    
+    .footerContent {
+      padding: 0 1rem;
+    }
+    
+    .brand {
+      font-size: 1.5rem;
+    }
+    
+    .contactEmails {
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .contactEmails span {
+      display: none;
+    }
+    
+    .copyright {
+      text-align: center;
+      font-size: 0.8rem;
+    }
+  }
+  
