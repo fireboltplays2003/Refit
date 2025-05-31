@@ -9,6 +9,7 @@ const adminRoute = require("./routes/admin");
 const logoutRoute = require("./routes/logout");
 const trainerRoute = require("./routes/trainer");
 const port = 8801;
+const classesRoute = require("./routes/member");
 
 app.use(cors({
   origin: 'http://localhost:3000', 
@@ -45,6 +46,7 @@ app.use('/logout', logoutRoute);
 
 app.use('/trainer', trainerRoute);
 
+app.use('/member', classesRoute);
 
 app.use((err, req, res, next) => {
   console.error(err); // Log error

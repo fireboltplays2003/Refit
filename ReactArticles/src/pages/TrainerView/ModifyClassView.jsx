@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import TrainerHeader from "./TrainerHeader";
 import Footer from "../../components/Footer";
-import styles from "./ModifyClassView.module.css"; // Import your CSS module
+import styles from "./modifyClassView.module.css"; // Import your CSS module
 
 export default function ModifyClassView() {
   const [classes, setClasses] = useState([]);
@@ -11,6 +11,7 @@ export default function ModifyClassView() {
   const [form, setForm] = useState({
     classTypeId: "",
     schedule: "",
+    time: "",
     maxParticipants: ""
   });
   const [error, setError] = useState("");
@@ -32,7 +33,7 @@ export default function ModifyClassView() {
   // When user picks a class, fill form fields
   useEffect(() => {
     if (!selectedClassId) {
-      setForm({ classTypeId: "", schedule: "", maxParticipants: "" });
+      setForm({ classTypeId: "", schedule: "", time: "", maxParticipants: "" });
       return;
     }
     const selected = classes.find(c => c.ClassID === Number(selectedClassId));
@@ -40,6 +41,7 @@ export default function ModifyClassView() {
       setForm({
         classTypeId: selected.ClassType,
         schedule: selected.Schedule ? selected.Schedule.slice(0, 16) : "",
+        time: selected.time ? selected.time.slice(0, 5) : "",
         maxParticipants: selected.MaxParticipants
       });
     }
@@ -58,6 +60,7 @@ export default function ModifyClassView() {
       {
         classTypeId: form.classTypeId,
         schedule: form.schedule,
+        time: form.time,
         maxParticipants: form.maxParticipants
       },
       { withCredentials: true }
@@ -100,7 +103,7 @@ export default function ModifyClassView() {
             <option value="">-- Select Class --</option>
             {classes.map(cls => (
               <option key={cls.ClassID} value={cls.ClassID}>
-                {cls.ClassTypeName || `TypeID ${cls.ClassType}`} - {cls.Schedule ? new Date(cls.Schedule).toLocaleString() : ""}
+                {cls.ClassTypeName || `TypeID ${cls.ClassType}`} - {cls.Schedule ? new Date(cls.Schedule).toLocaleDateString() : ""}{" "} {cls.time ? cls.time : ""}
               </option>
             ))}
           </select>
@@ -122,12 +125,22 @@ export default function ModifyClassView() {
               </select>
             </div>
             <div>
-              <label className={styles.formLabel}>Class Date & Time:</label>
+              <label className={styles.formLabel}>Class Date:</label>
               <input
                 className={styles.formInput}
-                type="datetime-local"
+                type="date"
                 name="schedule"
                 value={form.schedule}
+                onChange={handleChange}
+              />
+            </div>
+            <div>
+              <label className={styles.formLabel}>Class Time:</label>
+              <input
+                className={styles.formInput}
+                type="time"
+                name="time"
+                value={form.time}
                 onChange={handleChange}
               />
             </div>

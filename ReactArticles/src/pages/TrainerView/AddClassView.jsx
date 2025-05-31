@@ -2,12 +2,13 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import TrainerHeader from "./TrainerHeader";
 import Footer from "../../components/Footer";
-import styles from "./AddClassView.module.css"; // <<== IMPORT HERE
+import styles from "./addClassView.module.css";
 
 export default function AddClassView() {
   const [classTypes, setClassTypes] = useState([]);
   const [classTypeId, setClassTypeId] = useState("");
   const [schedule, setSchedule] = useState("");
+  const [time, setTime] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
   const [trainerId, setTrainerId] = useState(null);
 
@@ -42,12 +43,14 @@ export default function AddClassView() {
       trainerId,
       classTypeId,
       schedule,
+      time,
       maxParticipants
     }, { withCredentials: true })
       .then(() => {
         alert("Class created successfully!");
         setClassTypeId("");
         setSchedule("");
+        setTime("");
         setMaxParticipants("");
       })
       .catch((err) => {
@@ -73,9 +76,9 @@ export default function AddClassView() {
           </div>
 
           <div>
-            <label>Class Date & Time:</label>
+            <label>Class Date:</label>
             <input
-              type="datetime-local"
+              type="date"
               value={schedule}
               min={(() => {
                 const date = new Date();
@@ -83,6 +86,15 @@ export default function AddClassView() {
                 return date.toISOString().slice(0, 16);
               })()}
               onChange={(e) => setSchedule(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label>Class Time:</label>
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
             />
           </div>
 

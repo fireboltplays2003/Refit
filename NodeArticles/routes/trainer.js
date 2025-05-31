@@ -19,18 +19,18 @@ router.post("/create-class", (req, res) => {
     }
   
     const trainerId = user.UserID; // update based on your session
-    const { classTypeId, schedule, maxParticipants } = req.body;
+    const { classTypeId, schedule, time, maxParticipants } = req.body;
   
-    if (!classTypeId || !schedule || !maxParticipants) {
+    if (!classTypeId || !schedule || !time || !maxParticipants) {
       return res.status(400).json({ error: "Missing class data" });
     }
   
     const query = `
-      INSERT INTO classes (ClassType, TrainerID, Schedule, MaxParticipants)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO classes (ClassType, TrainerID, Schedule,time, MaxParticipants)
+      VALUES (?, ?, ?, ?, ?)
     `;
   
-    db.query(query, [classTypeId, trainerId, schedule, maxParticipants], (err, results) => {
+    db.query(query, [classTypeId, trainerId, schedule, time, maxParticipants], (err, results) => {
       if (err) {
         console.error("DB Insert Error:", err);
         return res.status(500).json({ error: "Database error" });
@@ -47,7 +47,7 @@ router.get("/classes", (req, res) => {
   }
   const trainerId = user.UserID;
   const query = `
-    SELECT c.ClassID, c.ClassType, ct.type AS ClassTypeName, c.Schedule, c.MaxParticipants
+    SELECT c.ClassID, c.ClassType, ct.type AS ClassTypeName, c.Schedule, c.time, c.MaxParticipants
     FROM classes c
     JOIN class_types ct ON c.ClassType = ct.id
     WHERE c.TrainerID = ?
@@ -70,16 +70,16 @@ router.put("/class/:classId", (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
   const trainerId = user.UserID;
-  const { classTypeId, schedule, maxParticipants } = req.body;
+  const { classTypeId, schedule, time, maxParticipants } = req.body;
   const classId = req.params.classId;
 
   // Column names must match your DB schema!
   const query = `
     UPDATE classes 
-    SET ClassType = ?, Schedule = ?, MaxParticipants = ?
+    SET ClassType = ?, Schedule = ?, time = ?, MaxParticipants = ?
     WHERE ClassID = ? AND TrainerID = ?
   `;
-  db.query(query, [classTypeId, schedule, maxParticipants, classId, trainerId], (err, result) => {
+  db.query(query, [classTypeId, schedule, time, maxParticipants, classId, trainerId], (err, result) => {
     if (err) {
       console.error("DB Update Error:", err); // Print real error for debugging!
       return res.status(500).json({ error: "Database error" });

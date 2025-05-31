@@ -99,7 +99,8 @@ export default function TrainerView() {
               <thead>
                 <tr>
                   <th>Class Type</th>
-                  <th>Date & Time</th>
+                  <th>Date</th>
+                  <th>Time</th>
                   <th>Max Participants</th>
                 </tr>
               </thead>
@@ -107,7 +108,8 @@ export default function TrainerView() {
                 {upcomingClasses.map(cls => (
                   <tr key={cls.ClassID}>
                     <td>{cls.ClassTypeName || `Type ${cls.ClassType}`}</td>
-                    <td>{cls.Schedule ? new Date(cls.Schedule).toLocaleString() : ""}</td>
+                    <td>{cls.Schedule ? cls.Schedule.slice(0, 10) : ""}</td>
+                    <td>{cls.time ? cls.time.slice(0, 5) : ""}</td>
                     <td>{cls.MaxParticipants}</td>
                   </tr>
                 ))}
