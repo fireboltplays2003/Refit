@@ -18,7 +18,6 @@ import MembersPage from "../pages/AdminView/MembersPage";
 import ClassesPage from "../pages/AdminView/ClassesPage";
 import AddClassView from "../pages/TrainerView/AddClassView";
 import ModifyClassView from "../pages/TrainerView/ModifyClassView";
-import SelectClassView from "../pages/SelectClassView/SelectClassView";
 function MyRoutes() {
  
   
@@ -42,7 +41,6 @@ function MyRoutes() {
     <Route path="/admin/classes" element={<ClassesPage />} />
     <Route path="/trainer/add-class" element={<AddClassView />} />
     <Route path="/trainer/modify-class" element={<ModifyClassView />} />
-    <Route path="/member/select-class" element={<SelectClassView />} />
     <Route path="*" element={<NotFound />} />
   </Routes>
   );

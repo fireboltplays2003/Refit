@@ -15,36 +15,75 @@ router.get("/class-types", (req, res) => {
   });
 });
 
-router.post("/classes-with-trainers", (req, res) => {
+
+router.post("/classes", (req, res) => {
   const { typeId, date } = req.body;
 
-  if (!typeId || !date) {
-    return res.status(400).json({ error: "Missing typeId or date in request." });
-  }
-
-  const sql = `
+  let sql = `
     SELECT 
       c.ClassID,
       c.ClassType,
       c.Schedule,
       c.time,
       c.MaxParticipants,
-      t.UserID,
-      t.Reviews,
-      t.Ratings
+      c.TrainerID,
+      u.FirstName AS TrainerFirstName,
+      u.LastName AS TrainerLastName,
+      u.Email AS TrainerEmail
     FROM classes c
-    JOIN trainers t ON c.TrainerID = t.UserID
-    WHERE c.ClassType = ? AND DATE(c.Schedule) = ?
+    JOIN users u ON c.TrainerID = u.UserID
+    WHERE u.Role = 'trainer'
   `;
+  let params = [];
 
-  db.query(sql, [typeId, date], (err, results) => {
+  // Add filters dynamically
+  if (typeId && date) {
+    sql += " AND c.ClassType = ? AND c.Schedule = ?";
+    params = [typeId, date];
+  } else if (typeId) {
+    sql += " AND c.ClassType = ?";
+    params = [typeId];
+  } else if (date) {
+    sql += " AND c.Schedule = ?";
+    params = [date];
+  }
+
+  db.query(sql, params, (err, results) => {
     if (err) {
-      console.error("Error fetching class-trainer info:", err);
+      console.error("Error fetching classes:", err);
       return res.status(500).json({ error: "Database error" });
     }
     res.json(results);
   });
 });
 
+router.get("/class-amount", (req, res) => {
+  const userId = req.session.user.UserID;
+  const sql = "SELECT ClassAmount FROM membership WHERE UserID = ? LIMIT 1";
+  db.query(sql, [userId], (err, results) => {
+    if (err) {
+      console.error("Error fetching class amount:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    if (results.length === 0) return res.json({ classAmount: 0 });
+    res.json({ classAmount: results[0].ClassAmount });
+  });
+});
+
+router.post("/use-class", (req, res) => {
+  const userId = req.session.user.UserID;
+  const sqlCheck = "SELECT ClassAmount FROM membership WHERE UserID = ? LIMIT 1";
+  db.query(sqlCheck, [userId], (err, results) => {
+    if (err) return res.status(500).json({ error: "Database error" });
+    if (results.length === 0 || results[0].ClassAmount <= 0) {
+      return res.status(400).json({ error: "No class credits left." });
+    }
+    const sqlUpdate = "UPDATE membership SET ClassAmount = ClassAmount - 1 WHERE UserID = ? AND ClassAmount > 0";
+    db.query(sqlUpdate, [userId], (err2) => {
+      if (err2) return res.status(500).json({ error: "Failed to use class." });
+      res.json({ success: true });
+    });
+  });
+});
 
 module.exports = router;
