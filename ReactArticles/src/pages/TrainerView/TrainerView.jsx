@@ -22,7 +22,7 @@ export default function TrainerView() {
       .then((res) => {
         if (res.data.Role === "trainer") {
           setAuthorized(true);
-          setName(res.data.Name || 'Trainer');
+          setName(res.data.FirstName + " " + res.data.LastName);
         } else {
           navigate("/login");
         }

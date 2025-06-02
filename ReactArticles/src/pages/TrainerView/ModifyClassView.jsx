@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import axios from "axios";
 import TrainerHeader from "./TrainerHeader";
 import Footer from "../../components/Footer";
-import styles from "./modifyClassView.module.css"; // Import your CSS module
+import styles from "./ModifyClassView.module.css"; // Import your CSS module
 
 export default function ModifyClassView() {
   const [classes, setClasses] = useState([]);
