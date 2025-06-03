@@ -8,6 +8,7 @@ const roleAuth = require("./routes/RoleAuth");
 const adminRoute = require("./routes/admin");
 const logoutRoute = require("./routes/logout");
 const trainerRoute = require("./routes/trainer");
+const paypalRoutes = require('./routes/paypal');
 const port = 8801;
 const classesRoute = require("./routes/member");
 
@@ -47,6 +48,8 @@ app.use('/logout', logoutRoute);
 app.use('/trainer', trainerRoute);
 
 app.use('/member', classesRoute);
+
+app.use('/api/paypal', paypalRoutes);
 
 app.use((err, req, res, next) => {
   console.error(err); // Log error

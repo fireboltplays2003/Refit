@@ -1,0 +1,325 @@
+.bg {
+    min-height: 100vh;
+    min-width: 100vw;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), 
+                      url("../../../public/img/BookClassImage.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+  }
+  
+  /* Center the booking container, glassmorphism */
+  .bookingContainer {
+    background: rgba(255, 255, 255, 0.88);
+    box-shadow: 0 10px 35px rgba(0, 0, 0, 0.15), 0 5px 15px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    padding: 2.5rem 2.5rem 2rem;
+    max-width: 600px;
+    width: 100%;
+    margin: 1rem auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.5rem;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
+  
+  .bookingContainer:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+  }
+  
+  h2 {
+    font-size: 2.2rem;
+    color: #0a3a5c;
+    margin: 0 0 1.2rem 0;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    width: 100%;
+    text-align: center;
+    position: relative;
+    padding-bottom: 1rem;
+  }
+  
+  h2:after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background: linear-gradient(90deg, #0e7fd6, #64b5f6);
+    border-radius: 3px;
+  }
+  
+  .bookingRow {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  label {
+    font-weight: 600;
+    color: #2d3748;
+    margin-bottom: 0.5rem;
+    display: block;
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+  }
+  
+  select, input[type="date"] {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    border: 1.5px solid #e2e8f0;
+    background: #ffffff;
+    margin: 0.25rem 0 1.25rem 0;
+    font-size: 0.95rem;
+    color: #2d3748;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  }
+  
+  select:focus, input[type="date"]:focus {
+    outline: none;
+    border-color: #63b3ed;
+    box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.3);
+  }
+  
+  /* Class credits */
+  .classCredits {
+    font-weight: 700;
+    color: #2c5282;
+    margin: 1.5rem 0 1rem 0;
+    font-size: 1.15rem;
+    background: #f0f9ff;
+    padding: 0.8rem 1.2rem;
+    border-radius: 8px;
+    width: 100%;
+    text-align: center;
+    border-left: 4px solid #0e7fd6;
+  }
+  
+  /* Class selection area */
+  .classList {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    margin: 0.5rem 0 1.5rem 0;
+    width: 100%;
+    padding: 0.25rem;
+  }
+  
+  .classButton {
+    border: 1.5px solid #e2e8f0;
+    background: #ffffff;
+    color: #2d3748;
+    border-radius: 12px;
+    padding: 1.5rem 1.5rem 1.25rem;
+    margin: 0;
+    cursor: pointer;
+    font-size: 0.95rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    text-align: left;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 200px;
+    overflow: hidden;
+  }
+  
+  .classButton::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #0e7fd6, #64b5f6);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+  
+  .classButton:hover::before {
+    opacity: 1;
+  }
+  
+  .classButton:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    border-color: #e2e8f0;
+  }
+  
+  .classButtonSelected {
+    background: #f8fbff;
+    border-color: #0e7fd6;
+    box-shadow: 0 4px 15px rgba(14, 127, 214, 0.15);
+    z-index: 1;
+  }
+  
+  .classButtonSelected::before {
+    opacity: 1;
+  }
+  
+  .classButton strong {
+    color: #2d3748;
+    font-weight: 600;
+    margin-right: 0.25rem;
+  }
+  
+  .creditBtn {
+    margin: 1rem 0 0.5rem;
+    background: linear-gradient(135deg, #0e7fd6 0%, #4a9ce8 100%);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 1rem 2rem;
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(14, 127, 214, 0.2);
+    transition: all 0.25s ease;
+    width: 100%;
+    text-transform: uppercase;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .creditBtn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(14, 127, 214, 0.25);
+    background: linear-gradient(135deg, #0d72c2 0%, #3a8de0 100%);
+  }
+  
+  .creditBtn:active:not(:disabled) {
+    transform: translateY(0);
+  }
+  
+  .creditBtn:disabled {
+    background: #cbd5e0;
+    cursor: not-allowed;
+    opacity: 0.8;
+  }
+  
+  .paypalSection {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    width: 100%;
+    border-top: 1px solid #e2e8f0;
+  }
+  
+  .paypalSection h3 {
+    color: #2d3748;
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+    text-align: center;
+    position: relative;
+  }
+  
+  #paypal-button-container {
+    margin: 1rem 0 0.5rem;
+    min-height: 45px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Info/error/success messages */
+  .errorMsg {
+    color: #e53e3e;
+    background-color: #fff5f5;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin: 1rem 0 0;
+    font-size: 0.95rem;
+    border-left: 4px solid #e53e3e;
+    width: 100%;
+  }
+  
+  .successMsg {
+    color: #2f855a;
+    background-color: #f0fff4;
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    margin: 1rem 0 0;
+    font-size: 0.95rem;
+    border-left: 4px solid #38a169;
+    width: 100%;
+  }
+  
+  .paypalMsg {
+    color: #4a5568;
+    font-size: 0.95rem;
+    text-align: center;
+    margin: 0.5rem 0 0;
+    font-style: italic;
+  }
+  
+  @media (max-width: 768px) {
+    .bg {
+      padding: 1rem 0.75rem;
+    }
+    
+    .classList {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+      max-width: 100%;
+      margin-left: 0;
+      margin-right: 0;
+    }
+    
+    .bookingContainer {
+      padding: 1.75rem 1.5rem;
+      max-width: 100%;
+      margin: 0.5rem auto;
+      border-radius: 12px;
+    }
+    
+    .classList {
+      grid-template-columns: 1fr;
+      gap: 0.75rem;
+    }
+    
+    .bookingRow {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.5rem;
+    }
+    
+    h2 {
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .creditBtn {
+      padding: 0.9rem 1.5rem;
+      font-size: 1rem;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .bookingContainer {
+      padding: 1.5rem 1.25rem;
+    }
+    
+    h2 {
+      font-size: 1.6rem;
+    }
+  }

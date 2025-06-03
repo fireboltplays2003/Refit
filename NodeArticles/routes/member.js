@@ -17,34 +17,32 @@ router.get("/class-types", (req, res) => {
 
 
 router.post("/classes", (req, res) => {
-  const { typeId, date } = req.body;
+  const { classTypeName, date } = req.body;
 
   let sql = `
-    SELECT 
-      c.ClassID,
-      c.ClassType,
-      c.Schedule,
-      c.time,
-      c.MaxParticipants,
-      c.TrainerID,
-      u.FirstName AS TrainerFirstName,
-      u.LastName AS TrainerLastName,
-      u.Email AS TrainerEmail
-    FROM classes c
-    JOIN users u ON c.TrainerID = u.UserID
-    WHERE u.Role = 'trainer'
-  `;
+  SELECT
+    c.ClassID,            
+    ct.type AS ClassType,
+    c.Schedule,
+    c.time,
+    c.MaxParticipants,
+    u.FirstName AS TrainerFirstName,
+    u.LastName AS TrainerLastName
+  FROM classes c
+  JOIN class_types ct ON c.ClassType = ct.id
+  JOIN users u ON c.TrainerID = u.UserID
+  WHERE u.Role = 'trainer'
+`;
   let params = [];
 
-  // Add filters dynamically
-  if (typeId && date) {
-    sql += " AND c.ClassType = ? AND c.Schedule = ?";
-    params = [typeId, date];
-  } else if (typeId) {
-    sql += " AND c.ClassType = ?";
-    params = [typeId];
+  if (classTypeName && date) {
+    sql += " AND ct.type = ? AND DATE(c.Schedule) = ?";
+    params = [classTypeName, date];
+  } else if (classTypeName) {
+    sql += " AND ct.type = ?";
+    params = [classTypeName];
   } else if (date) {
-    sql += " AND c.Schedule = ?";
+    sql += " AND DATE(c.Schedule) = ?";
     params = [date];
   }
 
@@ -57,7 +55,13 @@ router.post("/classes", (req, res) => {
   });
 });
 
+
 router.get("/class-amount", (req, res) => {
+  // SAFETY CHECK
+  if (!req.session.user || !req.session.user.UserID) {
+    return res.status(401).json({ error: "Unauthorized: Not logged in" });
+  }
+
   const userId = req.session.user.UserID;
   const sql = "SELECT ClassAmount FROM membership WHERE UserID = ? LIMIT 1";
   db.query(sql, [userId], (err, results) => {
@@ -69,6 +73,7 @@ router.get("/class-amount", (req, res) => {
     res.json({ classAmount: results[0].ClassAmount });
   });
 });
+
 
 router.post("/use-class", (req, res) => {
   const userId = req.session.user.UserID;
@@ -83,6 +88,21 @@ router.post("/use-class", (req, res) => {
       if (err2) return res.status(500).json({ error: "Failed to use class." });
       res.json({ success: true });
     });
+  });
+});
+router.post("/save-booking", (req, res) => {
+  const userId = req.session.user.UserID;
+  const { classId } = req.body;
+
+  if (!classId) return res.status(400).json({ error: "Class ID missing" });
+
+  const sql = "INSERT INTO members_classes (ClassID, MemberID) VALUES (?, ?)";
+  db.query(sql, [classId, userId], (err, result) => {
+    if (err) {
+      console.error("Error saving booking:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    res.json({ success: true });
   });
 });
 
