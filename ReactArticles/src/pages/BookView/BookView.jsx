@@ -45,7 +45,7 @@ export default function BookView() {
 
   useEffect(() => {
     const body = {};
-    if (selectedType) body.typeId = parseInt(selectedType);
+    if (selectedType) body.classTypeName = selectedType; // <--- Fix here!
     if (selectedDate) body.date = selectedDate;
     axios.post("http://localhost:8801/member/classes", body, { withCredentials: true })
       .then(res => {
@@ -109,7 +109,7 @@ export default function BookView() {
         <select value={selectedType} onChange={e => setSelectedType(e.target.value)}>
           <option value="">-- All Types --</option>
           {classTypes.map(type => (
-            <option key={type.id} value={type.id}>{type.type}</option>
+            <option key={type.id} value={type.type}>{type.type}</option>
           ))}
         </select>
 
