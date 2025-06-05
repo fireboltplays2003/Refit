@@ -11,6 +11,7 @@ const trainerRoute = require("./routes/trainer");
 const paypalRoutes = require('./routes/paypal');
 const port = 8801;
 const classesRoute = require("./routes/member");
+const userRoute = require("./routes/user");
 
 app.use(cors({
   origin: 'http://localhost:3000', 
@@ -40,6 +41,8 @@ app.use('/login', loginRoute);
 app.use('/register', registerRoute);
 
 app.use('/whoami', roleAuth);
+
+app.use('/user', userRoute);
 
 app.use('/admin', adminRoute);
 

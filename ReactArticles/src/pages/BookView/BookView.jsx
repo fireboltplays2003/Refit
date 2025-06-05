@@ -21,7 +21,7 @@ export default function BookView() {
 
   // only add PayPal script once
   const paypalScriptLoaded = useRef(false);
-
+  
   useEffect(() => {
     if (paypalScriptLoaded.current) return;
     const script = document.createElement("script");
