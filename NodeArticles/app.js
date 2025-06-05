@@ -12,6 +12,7 @@ const paypalRoutes = require('./routes/paypal');
 const port = 8801;
 const classesRoute = require("./routes/member");
 const userRoute = require("./routes/user");
+const profileRoute = require("./routes/profile");
 
 app.use(cors({
   origin: 'http://localhost:3000', 
@@ -53,6 +54,8 @@ app.use('/trainer', trainerRoute);
 app.use('/member', classesRoute);
 
 app.use('/api/paypal', paypalRoutes);
+
+app.use('/profile', profileRoute);
 
 app.use((err, req, res, next) => {
   console.error(err); // Log error

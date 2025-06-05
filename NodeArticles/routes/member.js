@@ -57,7 +57,6 @@ router.post("/classes", (req, res) => {
 
 
 router.get("/class-amount", (req, res) => {
-  // SAFETY CHECK
   if (!req.session.user || !req.session.user.UserID) {
     return res.status(401).json({ error: "Unauthorized: Not logged in" });
   }

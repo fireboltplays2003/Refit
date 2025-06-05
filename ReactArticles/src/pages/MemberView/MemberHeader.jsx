@@ -1,14 +1,30 @@
 import { NavLink } from "react-router-dom";
+import styles from "./MemberHeader.module.css";
 
 export default function MemberHeader() {
   return (
-    <header style={{ background: "#f8f8f8", padding: "10px" }}>
-      <nav>
-        <NavLink to="/home" style={{ marginRight: 15 }}>Home</NavLink>
-        <NavLink to="/membership" style={{ marginRight: 15 }}>My Membership</NavLink>
-        <NavLink to="/book-class" style={{ marginRight: 15 }}>Book Class</NavLink>
-        <NavLink to="/profile" style={{ marginRight: 15 }}>Profile</NavLink>
-        <NavLink to="/logout">Logout</NavLink>
+    <header className={styles.header}>
+      <nav className={styles.nav}>
+        <NavLink
+          to="/home"
+          className={({ isActive }) => isActive ? `${styles.link} ${styles.active}` : styles.link}
+        >Home</NavLink>
+        <NavLink
+          to="/membership"
+          className={({ isActive }) => isActive ? `${styles.link} ${styles.active}` : styles.link}
+        >My Membership</NavLink>
+        <NavLink
+          to="/book-class"
+          className={({ isActive }) => isActive ? `${styles.link} ${styles.active}` : styles.link}
+        >Book Class</NavLink>
+        <NavLink
+          to="/profile"
+          className={({ isActive }) => isActive ? `${styles.link} ${styles.active}` : styles.link}
+        >Profile</NavLink>
+        <NavLink
+          to="/logout"
+          className={({ isActive }) => isActive ? `${styles.link} ${styles.active}` : styles.link}
+        >Logout</NavLink>
       </nav>
     </header>
   );

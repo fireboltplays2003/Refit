@@ -24,16 +24,19 @@ async function getAccessToken() {
 }
 
 // Create Order
+// routes/paypal.js
+
 router.post("/create-order", async (req, res) => {
   try {
     const token = await getAccessToken();
+    const { amount } = req.body; // Expect amount in ILS from frontend
 
     const order = await axios.post(
       `${BASE}/v2/checkout/orders`,
       {
         intent: "CAPTURE",
         purchase_units: [{
-          amount: { currency_code: "USD", value: "10.00" },
+          amount: { currency_code: "ILS", value: String(amount) }, // Change to ILS
         }],
       },
       {
@@ -49,6 +52,7 @@ router.post("/create-order", async (req, res) => {
     res.status(500).json({ error: "Failed to create order" });
   }
 });
+
 
 // Capture Payment
 router.post("/capture-order", async (req, res) => {

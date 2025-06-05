@@ -1,0 +1,204 @@
+.bg {
+    min-height: 100vh;
+    background: linear-gradient(120deg, #191922 60%, #2e1212 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100vw;
+    padding-top: 80px;
+    box-sizing: border-box;
+  }
+  
+  .container {
+    width: 100%;
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 0 1rem 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  h1 {
+    color: #fff;
+    font-size: 2.3rem;
+    font-weight: 900;
+    margin: 1.5rem 0 2.4rem 0;
+    text-align: center;
+    letter-spacing: -1px;
+    text-shadow: 0 2px 24px #a6000055;
+  }
+  
+  .topRow {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 2.4rem;
+    width: 100%;
+  }
+  
+  .bottomRow {
+    display: flex;
+    justify-content: center;
+    margin-top: 2.1rem;
+    width: 100%;
+  }
+  
+  .card {
+    flex: 1 1 255px;
+    background: rgba(26, 23, 28, 0.99);
+    border-radius: 20px 20px 24px 24px;
+    box-shadow: 0 8px 32px 0 #ae162430;
+    border: 2px solid transparent;
+    padding: 2.15rem 2.25rem 1.7rem 2.25rem;
+    text-align: center;
+    cursor: pointer;
+    transition: box-shadow 0.22s, border-color 0.2s, transform 0.2s;
+    position: relative;
+    min-width: 230px;
+    margin-top: 0;
+    margin-bottom: 0;
+    color: #f7f6fb;
+  }
+  .card h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #ff2b3a;
+    margin-bottom: 0.6rem;
+    letter-spacing: 0.01em;
+    text-shadow: 0 1px 10px #ff2b3a30;
+  }
+  .card p {
+    font-size: 1.21rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 1rem;
+    letter-spacing: 0.02em;
+  }
+  .card ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 0.5rem 0;
+  }
+  .card ul li {
+    margin-bottom: 0.58rem;
+    font-size: 1.05rem;
+    color: #fdc3c6;
+    font-weight: 500;
+    text-shadow: 0 1px 12px #ff2b3a13;
+  }
+  
+  .card:hover,
+  .card.selected {
+    box-shadow: 0 16px 48px 0 #ff2b3a44;
+    border-color: #ff2b3a;
+    transform: translateY(-7px) scale(1.025);
+  }
+  
+  .selectedLabel {
+    position: absolute;
+    top: 18px;
+    right: 18px;
+    background: linear-gradient(90deg,#ff2b3a,#d70018 80%);
+    color: #fff;
+    font-size: 0.97rem;
+    padding: 0.13em 0.9em;
+    border-radius: 13px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    box-shadow: 0 1px 6px #ae162480;
+  }
+  
+  .duration {
+    margin: 2.5rem 0 1.1rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .duration h3 {
+    color: #ff2b3a;
+    font-size: 1.22rem;
+    font-weight: 700;
+    margin-bottom: 1.1rem;
+    text-shadow: 0 1px 12px #ff2b3a70;
+  }
+  .duration button {
+    margin: 0 1.2rem;
+    padding: 0.78em 2.4em;
+    background: linear-gradient(94deg, #2e1212 40%, #ae1624 99%);
+    color: #fff;
+    border: 2px solid transparent;
+    border-radius: 9px;
+    font-size: 1.14rem;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    box-shadow: 0 2px 12px #ae162422;
+    transition: background 0.17s, box-shadow 0.16s, border 0.2s, color 0.14s;
+  }
+  .duration button:hover, .duration button:focus {
+    background: linear-gradient(94deg, #ff2b3a 10%, #470a11 80%);
+    box-shadow: 0 6px 18px #ae162433;
+    border: 2px solid #ff2b3a;
+    color: #fff;
+  }
+  .selectedDuration {
+    border: 2px solid #ff2b3a;
+    color: #ff2b3a;
+    background: #1b0b0c;
+  }
+  
+  .total {
+    color: #fff;
+    font-size: 1.16rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-top: 0.9rem;
+  }
+  
+  .errorMsg {
+    color: #fff;
+    background: #8d0f18;
+    border-left: 6px solid #ff2b3a;
+    border-radius: 8px;
+    padding: 0.78rem 1.1rem;
+    margin: 1rem 0 0;
+    font-size: 1rem;
+    width: 100%;
+    text-align: left;
+  }
+  .successMsg {
+    color: #fff;
+    background: #194a17;
+    border-left: 6px solid #67f589;
+    border-radius: 8px;
+    padding: 0.78rem 1.1rem;
+    margin: 1rem 0 0;
+    font-size: 1rem;
+    width: 100%;
+    text-align: left;
+  }
+  
+  #paypal-membership-button {
+    margin: 2.1rem 0 0.3rem 0;
+    display: flex;
+    justify-content: center;
+  }
+  
+  @media (max-width: 900px) {
+    .container { max-width: 98vw; }
+    .topRow {
+      flex-direction: column;
+      gap: 1.7rem;
+      align-items: center;
+    }
+    .bottomRow {
+      margin-top: 1.3rem;
+    }
+  }
+  @media (max-width: 600px) {
+    h1 { font-size: 1.25rem; }
+    .card { padding: 1.19rem 1.0rem 1.0rem 1.0rem; font-size: 0.98rem; }
+    .duration button { font-size: 1.03rem; padding: 0.58em 1.3em; }
+  }
+  

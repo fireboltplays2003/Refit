@@ -12,7 +12,6 @@ import BookView from "../pages/BookView/BookView";
 import MemberShipView from "../pages/MembershipView/MemberShipView";
 import RegisterTrainer from "../pages/RegisterTrainer/RegisterTrainer";
 import UserView from "../pages/UserView/UserView";
-
 import ReportsPage from "../pages/AdminView/ReportsPage";
 import MembersPage from "../pages/AdminView/MembersPage";
 import ClassesPage from "../pages/AdminView/ClassesPage";
@@ -34,7 +33,6 @@ function MyRoutes() {
     <Route path="/book-class" element={<BookView />} />
     <Route path="/membership" element={<MemberShipView />} />
     <Route path="/register-trainer" element={<RegisterTrainer />} />
-
     <Route path="/admin" element={<AdminView />} />
     <Route path="/admin/reports" element={<ReportsPage />} />
     <Route path="/admin/members" element={<MembersPage />} />
