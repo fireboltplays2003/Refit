@@ -1,57 +1,208 @@
 .header {
-    background: rgba(248, 248, 248, 0.96);
-    box-shadow: 0 2px 12px rgba(20, 30, 54, 0.05);
-    padding: 0.9rem 2.5rem 0.9rem 2.5rem;
-    border-radius: 0 0 16px 16px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10;
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  padding: 1.2rem 2.5rem;
+  background: rgba(24, 23, 29, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.22);
+  border-bottom: 1px solid rgba(255,255,255,0.09);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 60px;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  font-size: 2.1rem;
+}
+
+.namePart {
+  display: inline-block;
+  margin-right: 4px;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-family: 'Arial Black', 'Arial Bold', Arial, sans-serif;
+  font-size: 1.8rem;
+  font-weight: 800;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.17);
+  transition: all 0.3s ease;
+}
+
+.specialR {
+  display: inline-block;
+  transform: scaleX(-1) rotate(-10deg);
+  font-weight: 900;
+  color: #ff6b6b;
+  margin-right: -2px;
+  font-size: 2.2rem;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.23);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+  max-width: 1200px;
+  margin: 0;
+}
+
+.link {
+  color: rgba(255,255,255,0.85);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 1.07rem;
+  letter-spacing: 1px;
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  transition: all 0.3s;
+  position: relative;
+  text-transform: uppercase;
+}
+
+.link:hover {
+  color: #fff;
+  background: rgba(255,107,107,0.12);
+}
+
+.link.active {
+  color: #ff6b6b;
+  font-weight: 700;
+}
+
+.link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8px;
+  height: 8px;
+  background: #ff6b6b;
+  border-radius: 50%;
+}
+
+/* Profile Dropdown */
+.profileBtn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: #fff;
+  min-width: 130px;
+  font-size: 1.08rem;
+  user-select: none;
+  font-weight: 600;
+  gap: 5px;
+  margin-left: 1rem;
+  transition: color 0.18s;
+}
+.profileBtn:hover .userName {
+  color: #ff6b6b;
+}
+
+.userName {
+  max-width: 160px;        /* Change this to 160px for more space */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 1.08rem;
+  font-weight: 600;
+  transition: color 0.2s;
+  direction: ltr;
+}
+
+.dropdown,
+.dropdownActive {
+  display: none;
+  position: absolute;
+  top: 42px;
+  right: 0;
+  background: #23232e;
+  border-radius: 8px;
+  box-shadow: 0 4px 22px #0005;
+  min-width: 160px;
+  padding: 10px 0;
+  z-index: 120;
+}
+
+.dropdownActive {
+  display: block;
+  animation: dropIn 0.23s;
+}
+@keyframes dropIn {
+  from { opacity: 0; transform: translateY(-8px);}
+  to { opacity: 1; transform: translateY(0);}
+}
+
+.dropLink {
+  color: #fff;
+  text-decoration: none;
+  padding: 12px 20px;
+  display: block;
+  font-size: 1.07rem;
+  transition: background 0.13s, color 0.13s;
+  cursor: pointer;
+}
+.dropLink:hover {
+  background: #2e2e39;
+  color: #ff3b3b;
+}
+
+/* Tablet styles */
+@media (max-width: 900px) {
+  .header {
+    padding: 1rem 1.5rem;
   }
-  
   .nav {
-    display: flex;
-    gap: 2.2rem;
+    gap: 1.2rem;
   }
-  
+  .logoContainer {
+    font-size: 1.7rem;
+  }
+  .namePart {
+    font-size: 1.5rem;
+  }
   .link {
-    color: #195485;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 1.09rem;
-    letter-spacing: 0.03em;
-    position: relative;
-    transition: color 0.17s;
-    padding: 0.18rem 0;
-    border-bottom: 2.5px solid transparent;
+    font-size: 0.97rem;
+    padding: 0.45rem 0.8rem;
   }
-  
-  .link:hover,
-  .link:focus {
-    color: #0e7fd6;
-    border-bottom: 2.5px solid #0e7fd6;
-    background: rgba(14, 127, 214, 0.07);
-    border-radius: 4px;
+}
+@media (max-width: 540px) {
+  .header {
+    padding: 0.8rem 0.5rem;
+    min-height: 45px;
   }
-  
-  .active {
-    color: #0e7fd6;
-    border-bottom: 2.5px solid #0e7fd6;
-    background: rgba(14, 127, 214, 0.12);
-    border-radius: 4px;
+  .logoContainer {
+    font-size: 1.18rem;
   }
-  
-  @media (max-width: 600px) {
-    .header {
-      padding: 0.8rem 0.6rem;
-      border-radius: 0 0 10px 10px;
-    }
-    .nav {
-      gap: 1.05rem;
-    }
-    .link {
-      font-size: 1rem;
-      padding: 0.11rem 0;
-    }
+  .nav {
+    gap: 0.6rem;
   }
-  
+  .link {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+  }
+  .profileBtn, .userName {
+    font-size: 0.83rem;
+    min-width: 65px;
+    max-width: 65px;
+  }
+}
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  /* No gap needed, just profile */
+}

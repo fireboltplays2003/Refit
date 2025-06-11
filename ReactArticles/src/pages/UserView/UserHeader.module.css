@@ -1,6 +1,8 @@
 .header {
-  position: fixed;
-  top: 0; left: 0; right: 0;
+  position: sticky;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 1000;
   padding: 1.2rem 2.5rem;
   background: rgba(24, 23, 29, 0.92);
@@ -192,4 +194,15 @@
     min-width: 65px;
     max-width: 65px;
   }
+}
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 2.5rem;
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  /* No gap needed, just profile */
 }

@@ -4,11 +4,11 @@ import { useState } from "react";
 import classes from "./Login.module.css";
 import { NavLink } from "react-router-dom";
 
-export default function Login({ setIsLoggedIn }) {
+export default function Login({ setIsLoggedIn, setUser }) { // <-- add setUser here!
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
-    const [loading, setLoading] = useState(false); // <-- ADD THIS LINE
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     function checkValues() {
@@ -20,25 +20,32 @@ export default function Login({ setIsLoggedIn }) {
     }
 
     function fetchData() {
-        setLoading(true); // <-- Start loading
+        setLoading(true);
         axios.post("login", { email, password })
-            .then((response) => {
-                setTimeout(() => { // <-- DELAY REDIRECT
-                    setLoading(false); // <-- Stop loading
-                    if (response.data.Role === "admin") {
-                        navigate("/admin");
-                    } else if (response.data.Role === "trainer") {
-                        navigate("/trainer");
-                    } else if (response.data.Role === "user") {
-                        navigate("/user");
-                    }
-                    else {
-                        navigate("/member");
-                    }
-                }, 2000);
+            .then(() => {
+                // <-- After login success, fetch /whoami to update global user!
+                axios.get("/whoami", { withCredentials: true })
+                    .then(res => {
+                        setUser(res.data); // <-- update App.js state!
+                        // Now, redirect based on their role:
+                        if (res.data.Role === "admin") {
+                            navigate("/admin");
+                        } else if (res.data.Role === "trainer") {
+                            navigate("/trainer");
+                        } else if (res.data.Role === "user") {
+                            navigate("/user");
+                        }
+                        else {
+                            navigate("/member");
+                        }
+                    })
+                    .catch(() => {
+                        setError("Failed to get user info after login.");
+                    })
+                    .finally(() => setLoading(false));
             })
-            .catch((error) => {
-                setLoading(false); // <-- Stop loading if error
+            .catch(() => {
+                setLoading(false);
                 setError("Invalid credentials");
             });
     }
@@ -67,7 +74,7 @@ export default function Login({ setIsLoggedIn }) {
                         value={email}
                         className={classes.input}
                         placeholder="Enter your email"
-                        disabled={loading} // <-- Disable input when loading
+                        disabled={loading}
                     />
                 </div>
                 <div className={classes.formGroup}>
@@ -80,7 +87,7 @@ export default function Login({ setIsLoggedIn }) {
                         value={password}
                         className={classes.input}
                         placeholder="Enter your password"
-                        disabled={loading} // <-- Disable input when loading
+                        disabled={loading}
                     />
                 </div>
                 {loading && (

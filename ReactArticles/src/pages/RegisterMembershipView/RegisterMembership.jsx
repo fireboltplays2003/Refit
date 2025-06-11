@@ -3,8 +3,10 @@ import axios from "axios";
 import UserHeader from "../UserView/UserHeader";
 import styles from "./RegisterMembership.module.css";
 import ProfileModal from "../../components/ProfileModal";
+import Footer from "../../components/Footer";
+import { useNavigate } from "react-router-dom";
 
-export default function RegisterMembership({ currentUser }) {
+export default function RegisterMembership({ user, setUser }) {
   const plans = [
     { id: 1, name: "Basic", price: 120, benefits: ["Gym access", "Book classes", "Track membership"] },
     { id: 2, name: "Standard", price: 160, benefits: ["All Basic features", "2 free classes/month"] },
@@ -18,19 +20,22 @@ export default function RegisterMembership({ currentUser }) {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [showProfile, setShowProfile] = useState(false);
-  const [user, setUser] = useState({});
+  const [authorized, setAuthorized] = useState(false);
+  const [justRegistered, setJustRegistered] = useState(false);
 
+  const navigate = useNavigate();
   const paypalScriptLoaded = useRef(false);
   const paypalBtnsInstance = useRef(null);
 
-  // Fetch user for modal
   useEffect(() => {
-    axios.get("/whoami", { withCredentials: true })
-      .then(res => setUser(res.data))
-      .catch(() => setUser({}));
-  }, []);
+    if (!justRegistered && user && user.Role && user.Role !== "user") {
+      navigate("/" + user.Role);
+    } else if (user && user.Role === "user") {
+      setAuthorized(true);
+    }
+    // eslint-disable-next-line
+  }, [user, navigate, justRegistered]);
 
-  // Load PayPal script ONCE
   useEffect(() => {
     if (paypalScriptLoaded.current) return;
     const script = document.createElement("script");
@@ -40,21 +45,18 @@ export default function RegisterMembership({ currentUser }) {
     paypalScriptLoaded.current = true;
   }, []);
 
-  // Handle PayPal Button: Never remove the container. Only re-render buttons inside.
   useEffect(() => {
     if (!paypalReady || !selectedPlan || !duration || !window.paypal) {
-      // Cleanup button if user changes plan/duration away (unselects)
       if (paypalBtnsInstance.current) {
-        try { paypalBtnsInstance.current.close(); } catch { /* Ignore */ }
+        try { paypalBtnsInstance.current.close(); } catch { }
         paypalBtnsInstance.current = null;
       }
       document.getElementById("paypal-membership-button")?.replaceChildren();
       return;
     }
 
-    // Always cleanup before re-rendering
     if (paypalBtnsInstance.current) {
-      try { paypalBtnsInstance.current.close(); } catch { /* Ignore */ }
+      try { paypalBtnsInstance.current.close(); } catch { }
       paypalBtnsInstance.current = null;
     }
     document.getElementById("paypal-membership-button")?.replaceChildren();
@@ -69,26 +71,66 @@ export default function RegisterMembership({ currentUser }) {
       onApprove: async (data) => {
         try {
           await axios.post("http://localhost:8801/api/paypal/capture-order", { orderID: data.orderID });
-          await axios.post("http://localhost:8801/register-membership", {
-            userId: currentUser?.UserID,
-            membershipTypeId: selectedPlan.id,
-            months: duration
-          });
-          await axios.post("http://localhost:8801/update-role", {
-            userId: currentUser?.UserID,
-            newRole: "member"
-          });
-          setMessage("Membership registered and role updated!");
+
+          // 2. Register membership and get membership info for the receipt
+          const membershipRes = await axios.post(
+            "http://localhost:8801/user/register-membership",
+            {
+              userId: user.UserID,
+              membershipTypeId: selectedPlan.id,
+              months: duration
+            },
+            { withCredentials: true }
+          );
+
+          // 3. Update user role
+          await axios.post(
+            "http://localhost:8801/user/update-role",
+            {
+              userId: user.UserID,
+              newRole: "member"
+            },
+            { withCredentials: true }
+          );
+
+          // 3a. Update global user state with new role
+          setUser(prevUser => ({
+            ...prevUser,
+            Role: "member"
+          }));
+
+          setJustRegistered(true); // Prevent effect from navigating again
+
+          // 4. Send receipt (only if registration succeeded)
+          await axios.post(
+            "http://localhost:8801/user/send-receipt",
+            {
+              userId: user.UserID,
+              planName: selectedPlan.name,
+              duration,
+              total: finalPrice,
+              startDate: membershipRes.data.startDate,
+              endDate: membershipRes.data.endDate
+            },
+            { withCredentials: true }
+          );
+
+          // 5. Show success, then navigate to member view after 3 seconds
+          setMessage("Membership registered and role updated! A receipt was sent to your email.");
           setError("");
-        } catch {
+          setTimeout(() => {
+            navigate("/member");
+          }, 3000);
+
+        } catch (err) {
           setError("Something went wrong after payment.");
+          console.error("Payment error:", err);
         }
       },
       onError: () => setError("Payment failed.")
     });
 
     paypalBtnsInstance.current.render("#paypal-membership-button");
-    // Cleanup on unmount/change
     return () => {
       if (paypalBtnsInstance.current) {
         try { paypalBtnsInstance.current.close(); } catch { }
@@ -96,9 +138,8 @@ export default function RegisterMembership({ currentUser }) {
       }
       document.getElementById("paypal-membership-button")?.replaceChildren();
     };
-  }, [paypalReady, selectedPlan, duration, finalPrice, currentUser]);
+  }, [paypalReady, selectedPlan, duration, finalPrice, user, navigate, setUser, justRegistered]);
 
-  // Plan and duration handlers
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);
     setDuration(null);
@@ -106,6 +147,7 @@ export default function RegisterMembership({ currentUser }) {
     setMessage("");
     setError("");
   };
+
   const handleDurationSelect = (months) => {
     setDuration(months);
     setFinalPrice(months * selectedPlan.price);
@@ -113,13 +155,14 @@ export default function RegisterMembership({ currentUser }) {
     setError("");
   };
 
+  if (!authorized) return null;
+
   return (
     <>
-      <UserHeader name={user.FirstName + " " + user.LastName} onProfile={() => setShowProfile(true)} />
+      <UserHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
       <div className={styles.bg}>
         <div className={styles.container}>
           <h1>Choose a Membership Plan</h1>
-          {/* Top row: Basic + Standard */}
           <div className={styles.topRow}>
             {[plans[0], plans[1]].map(plan => (
               <div
@@ -136,7 +179,6 @@ export default function RegisterMembership({ currentUser }) {
               </div>
             ))}
           </div>
-          {/* Premium below */}
           <div className={styles.bottomRow}>
             <div
               className={`${styles.card} ${selectedPlan?.id === plans[2].id ? styles.selected : ""}`}
@@ -150,21 +192,21 @@ export default function RegisterMembership({ currentUser }) {
               {selectedPlan?.id === plans[2].id && <span className={styles.selectedLabel}>Selected</span>}
             </div>
           </div>
-          {/* Duration */}
           {selectedPlan && (
             <div className={styles.duration}>
               <h3>Select Duration</h3>
-              <button
-                onClick={() => handleDurationSelect(3)}
-                className={duration === 3 ? styles.selectedDuration : ""}
-              >3 Months</button>
-              <button
-                onClick={() => handleDurationSelect(12)}
-                className={duration === 12 ? styles.selectedDuration : ""}
-              >1 Year</button>
+              <div className={styles.buttonsContainer}>
+                <button
+                  onClick={() => handleDurationSelect(3)}
+                  className={duration === 3 ? styles.selectedDuration : ""}
+                >3 Months</button>
+                <button
+                  onClick={() => handleDurationSelect(12)}
+                  className={duration === 12 ? styles.selectedDuration : ""}
+                >1 Year</button>
+              </div>
             </div>
           )}
-          {/* The PayPal button container is ALWAYS present */}
           <div id="paypal-membership-button" style={{
             marginTop: duration ? "2rem" : "0",
             minHeight: "55px",
@@ -176,12 +218,12 @@ export default function RegisterMembership({ currentUser }) {
           {error && <p className={styles.errorMsg}>{error}</p>}
           {message && <p className={styles.successMsg}>{message}</p>}
         </div>
-        {/* Profile Modal (always rendered but shown/hidden with showProfile) */}
+        <Footer />
         <ProfileModal
           show={showProfile}
           onClose={() => setShowProfile(false)}
           userData={user}
-          onUpdate={u => setUser(v => ({ ...v, ...u }))}
+          onUpdate={setUser}
         />
       </div>
     </>

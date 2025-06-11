@@ -1,0 +1,132 @@
+.pageWrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: linear-gradient(135deg, #10141c 0%, #192745 85%, #15151a 100%);
+}
+
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  padding: 20px;
+  padding-top: 80px; /* Space for header */
+  padding-bottom: 100px; /* Space for footer */
+  position: relative;
+  z-index: 1;
+}
+.bgImage {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: url("/public/img/blackbackround.jpg") center center/cover no-repeat;
+  z-index: 0;
+  opacity: 0.33;
+  pointer-events: none;
+}
+
+/* Add overlay for better text readability */
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 0;
+}
+
+/* Accent themes */
+.premiumAccent {
+  border: 2.5px solid #ffd700;
+  background: linear-gradient(135deg, #23223a 60%, #ffe066 120%);
+  box-shadow: 0 10px 45px #ffd70022, 0 5px 20px #ffd70015;
+}
+.standardAccent {
+  border: 2.5px solid #b0b0b0;
+  background: linear-gradient(135deg, #253052 60%, #dde5ea 120%);
+  box-shadow: 0 10px 45px #b0b0b033, 0 5px 20px #b0b0b015;
+}
+.basicAccent {
+  border: 2.5px solid #bdbdbd;
+  background: linear-gradient(135deg, #262b32 60%, #e3e7ed 120%);
+  box-shadow: 0 10px 35px #bbbbbb22, 0 5px 15px #bbbbbb11;
+}
+
+.card {
+  border-radius: 22px;
+  padding: 32px;
+  min-width: 350px;
+  max-width: 420px;
+  margin: 20px auto;
+  text-align: center;
+  transition: box-shadow 0.25s, background 0.25s;
+  position: relative;
+  z-index: 1;
+  animation: popIn 0.7s cubic-bezier(0.67, 0.21, 0.54, 1.3);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.93); }
+  to { opacity: 1; transform: none; }
+}
+
+.header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.header h2 {
+  font-size: 2.3rem;
+  font-weight: bold;
+  margin: 0;
+  color: #fff;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.icon {
+  font-size: 2rem;
+  margin-right: 8px;
+  position: relative;
+  top: 3px;
+}
+.header h2:after {
+  content: "";
+  display: block;
+  margin: 10px auto 0 auto;
+  width: 70px;
+  height: 4px;
+  background: #ffe066;
+  border-radius: 2px;
+}
+
+.details {
+  margin-bottom: 16px;
+  color: #fff;
+}
+.expiring {
+  color: #e74c3c;
+  font-weight: bold;
+}
+.cancelBtn {
+  background: #e74c3c;
+  color: #fff;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.cancelBtn:disabled {
+  background: #ccc;
+  color: #444;
+  cursor: not-allowed;
+}

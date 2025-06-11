@@ -1,13 +1,62 @@
 .bg {
-  min-height: 100vh;
-  background: linear-gradient(120deg, #191922 60%, #2e1212 100%);
-  display: flex;
-  flex-direction: column;
-  width: 100vw;
-  padding-top: 80px;
-  box-sizing: border-box;
-}
-
+    min-height: 100vh;
+    background: linear-gradient(120deg, #191922 60%, #2e1212 100%);
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    padding-top: 80px;
+    box-sizing: border-box;
+  }
+  .currentPlanBox {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1.2rem;
+  }
+  
+  .currentPlanTitle {
+    font-size: 2.25rem;
+    font-weight: 800;
+    color: #59a8fc;
+    margin-bottom: 0.45rem;
+    margin-top: 0.6rem;
+    letter-spacing: -1px;
+    text-shadow: 0 1px 18px #4682b480;
+    position: relative;
+  }
+  
+  .currentPlanName {
+    color: #ff2b3a;
+    margin-left: 8px;
+    letter-spacing: 0.01em;
+  }
+  
+  .currentPlanUnderline {
+    width: 100px;
+    height: 5px;
+    background: #4bb6ff;
+    border-radius: 6px;
+    margin: 0.28em auto 0.7em auto;
+    opacity: 0.88;
+  }
+  
+  .membershipInfoRow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2.4em;
+    font-size: 1.13rem;
+    font-weight: 600;
+    margin-bottom: 1.4rem;
+    color: #f6f6f7;
+    text-shadow: 0 1px 10px #012b4733;
+  }
+  .membershipInfoRow b {
+    color: #59a8fc;
+    margin-right: 4px;
+    font-weight: 700;
+  }
+  
   .container {
     width: 100%;
     max-width: 760px;
@@ -36,7 +85,6 @@
     width: 100%;
   }
   
-  
   .bottomRow {
     display: flex;
     justify-content: center;
@@ -46,9 +94,9 @@
   
   .card {
     flex: 1 1 255px;
-    display: flex;            /* Add this */
-    flex-direction: column;   /* Add this */
-    justify-content: flex-start; /* Add this */
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
     background: rgba(26, 23, 28, 0.99);
     border-radius: 20px 20px 24px 24px;
     box-shadow: 0 8px 32px 0 #ae162430;
@@ -62,7 +110,6 @@
     margin-top: 0;
     margin-bottom: 0;
     color: #f7f6fb;
-    /* height: 100%; -- not needed if flex used properly */
   }
   
   .card h2 {
@@ -135,7 +182,7 @@
     width: 100%;
     max-width: 400px;
   }
-
+  
   .duration button {
     flex: 1;
     min-width: 140px;

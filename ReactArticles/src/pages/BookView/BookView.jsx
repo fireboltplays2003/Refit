@@ -2,28 +2,24 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import styles from './BookView.module.css';
 import MemberHeader from "../MemberView/MemberHeader";
+import ProfileModal from "../../components/ProfileModal";
+import Footer from "../../components/Footer";
 
-// Robust date formatter: always outputs DD/MM/YYYY from ISO
-// Replace the existing toDisplayDate function with this one:
 function toDisplayDate(isoDate) {
   if (!isoDate) return "";
   try {
-    // Create a date object from the ISO string
     const date = new Date(isoDate);
-    
-    // Get local date components
     const day = String(date.getDate()).padStart(2, '0');
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
-    
     return `${day}/${month}/${year}`;
-  } catch (e) {
-    console.error("Error formatting date:", e);
+  } catch {
     return "Invalid date";
   }
 }
 
-export default function BookView() {
+export default function BookView({ user, setUser }) {
+  const [membershipType, setMembershipType] = useState("standard");
   const [classTypes, setClassTypes] = useState([]);
   const [selectedType, setSelectedType] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
@@ -33,10 +29,27 @@ export default function BookView() {
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [paypalReady, setPaypalReady] = useState(false);
-
   const paypalScriptLoaded = useRef(false);
 
-  // Load PayPal script
+  const [membershipInfo, setMembershipInfo] = useState(null);
+  const [showProfile, setShowProfile] = useState(false);
+
+  // Get Membership info (includes EndDate & PlanName)
+  useEffect(() => {
+    axios.get("/member/my-membership", { withCredentials: true })
+      .then(res => {
+        setMembershipInfo(res.data);
+        let t = res.data?.PlanName?.toLowerCase() || "basic";
+        if (t === "premium") setMembershipType("premium");
+        else if (t === "basic") setMembershipType("basic");
+        else setMembershipType("standard");
+      })
+      .catch(() => {
+        setMembershipType("basic");
+        setMembershipInfo(null);
+      });
+  }, []);
+
   useEffect(() => {
     if (paypalScriptLoaded.current) return;
     const script = document.createElement("script");
@@ -46,45 +59,50 @@ export default function BookView() {
     paypalScriptLoaded.current = true;
   }, []);
 
-  // Get class types
   useEffect(() => {
     axios.get("http://localhost:8801/member/class-types", { withCredentials: true })
       .then(res => setClassTypes(res.data))
       .catch(() => setError("Failed to fetch class types."));
   }, []);
 
-  // Get class amount
   useEffect(() => {
     axios.get("http://localhost:8801/member/class-amount", { withCredentials: true })
       .then(res => setClassAmount(res.data.classAmount))
       .catch(() => setClassAmount(0));
   }, []);
 
-  // Fetch classes when filters change
+  // Fetch classes, but filter out any class after membership end date
   useEffect(() => {
-    setClasses([]); // Clear stale classes immediately
+    setClasses([]);
     setSelectedClassId(null);
     setError("");
     setMessage("");
-
     const body = {};
     if (selectedType) body.classTypeName = selectedType;
     if (selectedDate) body.date = selectedDate;
+
     axios.post("http://localhost:8801/member/classes", body, { withCredentials: true })
       .then(res => {
-        setClasses(res.data);
-        setError("");
+        let filteredClasses = res.data;
+        const endDate = membershipInfo?.EndDate;
+        if (endDate) {
+          // Always compare as YYYY-MM-DD
+          filteredClasses = res.data.filter(cls => {
+            const classDate = typeof cls.Schedule === "string"
+              ? cls.Schedule.slice(0, 10)
+              : new Date(cls.Schedule).toISOString().slice(0, 10);
+            return classDate <= endDate;
+          });
+        }
+        setClasses(filteredClasses);
       })
       .catch(() => setError("Failed to fetch classes."));
-  }, [selectedType, selectedDate]);
+  }, [selectedType, selectedDate, membershipInfo]);
 
-  // Render PayPal button
   useEffect(() => {
     const container = document.getElementById("paypal-button-container");
     if (!paypalReady || !selectedClassId || !container || !window.paypal) return;
-
     container.innerHTML = "";
-
     window.paypal.Buttons({
       createOrder: async () => {
         const res = await axios.post("http://localhost:8801/api/paypal/create-order");
@@ -97,10 +115,7 @@ export default function BookView() {
       },
       onError: () => setError("Payment failed.")
     }).render("#paypal-button-container");
-
-    return () => {
-      if (container) container.innerHTML = "";
-    };
+    return () => { if (container) container.innerHTML = ""; };
   }, [paypalReady, selectedClassId]);
 
   const handleClassSelect = (id) => {
@@ -117,16 +132,25 @@ export default function BookView() {
       setClassAmount(prev => prev - 1);
       setMessage("Class booked with class credit!");
       setError("");
-    } catch (err) {
+    } catch {
       setError("Booking failed. No credits or server error.");
     }
   };
 
+  const accent =
+    membershipType === "premium"
+      ? styles.premiumAccent
+      : membershipType === "basic"
+      ? styles.basicAccent
+      : styles.standardAccent;
+
   return (
     <>
-      <MemberHeader />
+      <MemberHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
       <div className={styles.bg}>
-        <div className={styles.bookingContainer}>
+        <div className={styles.bgImage}></div>
+        <div className={styles.overlay}></div>
+        <div className={`${styles.bookingContainer} ${accent}`}>
           <h2>Select a Class</h2>
           <label>Class Type:</label>
           <select value={selectedType} onChange={e => setSelectedType(e.target.value)}>
@@ -137,28 +161,32 @@ export default function BookView() {
           </select>
 
           <label>Date:</label>
-          <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
+          />
 
-          <p><strong>Your Class Credits:</strong> {classAmount}</p>
+          <p className={styles.classCredits}>
+            <strong>Your Class Credits: </strong> {classAmount}
+          </p>
           <div className={styles.classList}>
-  {classes.map(cls => (
-    <button
-      key={cls.ClassID}
-      onClick={() => handleClassSelect(cls.ClassID)}
-      className={
-        styles.classButton + " " +
-        (selectedClassId === cls.ClassID ? styles.classButtonSelected : "")
-      }
-      type="button"
-    >
-      <strong>Type:</strong> {cls.ClassType}<br />
-      <strong>Date:</strong> {toDisplayDate(cls.Schedule)} at {cls.time}<br />
-      <strong>Trainer:</strong> {cls.TrainerFirstName} {cls.TrainerLastName}
-    </button>
-  ))}
-</div>  
-
-          <br />
+            {classes.map(cls => (
+              <button
+                key={cls.ClassID}
+                onClick={() => handleClassSelect(cls.ClassID)}
+                className={
+                  styles.classButton + " " +
+                  (selectedClassId === cls.ClassID ? styles.classButtonSelected : "")
+                }
+                type="button"
+              >
+                <strong>Type:</strong> {cls.ClassType}<br />
+                <strong>Date:</strong> {toDisplayDate(cls.Schedule)} at {cls.time}<br />
+                <strong>Trainer:</strong> {cls.TrainerFirstName} {cls.TrainerLastName}
+              </button>
+            ))}
+          </div>
           <button
             onClick={handleBookWithCredit}
             disabled={classAmount <= 0 || !selectedClassId}
@@ -166,7 +194,6 @@ export default function BookView() {
           >
             Book with Class Credit
           </button>
-
           <div className={styles.paypalSection}>
             <h3>Or Pay with PayPal:</h3>
             <div
@@ -174,16 +201,22 @@ export default function BookView() {
               style={{ marginTop: "12px" }}
               key={selectedClassId || "none"}
             ></div>
-            {!paypalReady && <p>Loading PayPal button...</p>}
+            {!paypalReady && <p className={styles.paypalMsg}>Loading PayPal button...</p>}
             {paypalReady && !selectedClassId && (
-              <p style={{ color: "gray" }}>Select a class to enable PayPal payment.</p>
+              <p className={styles.paypalMsg}>Select a class to enable PayPal payment.</p>
             )}
           </div>
-
-          {error && <p style={{ color: "red" }}>{error}</p>}
-          {message && <p style={{ color: "green" }}>{message}</p>}
+          {error && <p className={styles.errorMsg}>{error}</p>}
+          {message && <p className={styles.successMsg}>{message}</p>}
         </div>
       </div>
+      <Footer />
+      <ProfileModal
+        show={showProfile}
+        onClose={() => setShowProfile(false)}
+        userData={user}
+        onUpdate={setUser}
+      />
     </>
   );
 }

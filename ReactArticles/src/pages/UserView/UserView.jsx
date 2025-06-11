@@ -1,34 +1,34 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import Footer from "../../components/Footer";
-import UserHeader from "./UserHeader";
 import styles from "./UserView.module.css";
+import UserHeader from "./UserHeader";
+import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
 
-const images = ["/img/img1.jpg","/img/img2.jpg","/img/img3.jpg","/img/img4.jpg","/img/img5.jpg"];
+const images = [
+  "/img/img1.jpg",
+  "/img/img2.jpg",
+  "/img/img3.jpg",
+  "/img/img4.jpg",
+  "/img/img5.jpg",
+  "/img/membershipImage.png"
+];
 
-export default function UserView() {
+export default function UserView({ user, setUser }) {
   const navigate = useNavigate();
   const [authorized, setAuthorized] = useState(false);
-  const [user, setUser] = useState({});
   const [bgIndex, setBgIndex] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
 
+  // Redirect if not user
   useEffect(() => {
-    axios.get("/whoami", { withCredentials: true })
-      .then(res => {
-        setUser(res.data);
-        if (res.data.Role !== "user") {
-          navigate("/" + res.data.Role);
-        } else {
-          setAuthorized(true);
-        }
-      })
-      .catch(() => {
-        navigate("/login");
-      });
-  }, [navigate]);
+    if (!user || !user.Role) return;
+    if (user.Role !== "user") {
+      navigate("/" + user.Role);
+    } else {
+      setAuthorized(true);
+    }
+  }, [user, navigate]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -41,7 +41,6 @@ export default function UserView() {
 
   return (
     <div className={styles.bgWrapper}>
-      {/* Animated background images */}
       {images.map((img, idx) => (
         <div
           key={idx}
@@ -55,12 +54,11 @@ export default function UserView() {
         />
       ))}
       <div className={styles.overlay} />
-      {/* UserHeader: triggers profile modal */}
-      <UserHeader onProfile={() => setShowProfile(true)} />
+      <UserHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
       <main className={styles.mainContent}>
         <div className={styles.welcomeContainer}>
           <h1 className={styles.welcomeTitle}>
-            Welcome Back, <span className={styles.highlight}>{user.FirstName + " " + user.LastName}</span>!
+            Welcome Back, <span className={styles.highlight}>{(user.FirstName || "") + " " + (user.LastName || "")}</span>!
           </h1>
           <p className={styles.welcomeText}>
             Your fitness journey continues. Explore your progress and discover new ways to achieve your goals.
@@ -68,12 +66,11 @@ export default function UserView() {
         </div>
       </main>
       <Footer />
-      {/* Profile Modal */}
       <ProfileModal
         show={showProfile}
         onClose={() => setShowProfile(false)}
         userData={user}
-        onUpdate={u => setUser(v => ({ ...v, ...u }))}
+        onUpdate={setUser}
       />
     </div>
   );

@@ -1,27 +1,12 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { FaUserCircle } from "react-icons/fa";
-import styles from "./UserHeader.module.css";
 import axios from "axios";
+import styles from "./UserHeader.module.css";
 
-export default function UserHeader({ onProfile }) {
+export default function UserHeader({ user, onProfile, setUser }) {
   const [dropdown, setDropdown] = useState(false);
-  const [name, setName] = useState("YourName");
-  const navigate = useNavigate();
-  
-  useEffect(() => {
-    axios.get("/whoami", { withCredentials: true })
-      .then(res => {
-        // Truncate name if too long for header
-        const n = (res.data.FirstName + " " + res.data.LastName).trim();
-        setName(n.length > 16 ? n.slice(0, 14) + "…" : n);
-      })
-      .catch(() => {
-        setName("User");
-      });
-  }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     function close(e) {
       if (!e.target.closest(`.${styles.profileBtn}`)) setDropdown(false);
@@ -32,41 +17,51 @@ export default function UserHeader({ onProfile }) {
 
   return (
     <header className={styles.header}>
-      <NavLink to="/user" className={styles.logoContainer} style={{ textDecoration: 'none' }}>
-        <span className={styles.specialR}>R</span>
-        <span className={styles.namePart}>efit</span>
-      </NavLink>
-      <nav className={styles.nav}>
-        <NavLink className={styles.link} to="/user">Home</NavLink>
-        <NavLink className={styles.link} to="/register-membership">Register Membership</NavLink>
+      <div className={styles.leftSection}>
+        <NavLink to="/user" className={styles.logoContainer} style={{ textDecoration: 'none' }}>
+          <span className={styles.specialR}>R</span>
+          <span className={styles.namePart}>efit</span>
+        </NavLink>
+        <nav className={styles.nav}>
+          <NavLink className={styles.link} to="/user">Home</NavLink>
+          <NavLink className={styles.link} to="/register-membership">Register Membership</NavLink>
+          <NavLink className={styles.link} to="/classes">Classes</NavLink>
+        </nav>
+      </div>
+      <div className={styles.rightSection}>
         <div
           className={styles.profileBtn}
           onClick={() => setDropdown((v) => !v)}
         >
           <FaUserCircle size={28} style={{ marginRight: 7, verticalAlign: "middle" }} />
-          <span className={styles.userName}>{name}</span>
+          <span className={styles.userName}>
+            {(user?.FirstName || "") + " " + (user?.LastName || "")}
+          </span>
           <div className={dropdown ? styles.dropdownActive : styles.dropdown}>
             <div
               className={styles.dropLink}
               onClick={() => {
                 setDropdown(false);
-                if (onProfile) onProfile(); // Trigger modal
+                if (onProfile) onProfile();
               }}
             >
               Profile
             </div>
             <div
               className={styles.dropLink}
-              onClick={() => {
-                setDropdown(false);
-                navigate("/logout");
+              onClick={async () => {
+                try {
+                  await axios.post("/logout", {}, { withCredentials: true });
+                } catch (e) {}
+                setUser(null);
+                window.location = "/login";
               }}
             >
               Logout
             </div>
           </div>
         </div>
-      </nav>
+      </div>
     </header>
   );
 }

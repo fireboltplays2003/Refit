@@ -30,13 +30,15 @@ export default function ProfileModal({ show, onClose, userData = {}, onUpdate })
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setStatusMsg(""); // clear previous
+    setStatusMsg("");
     try {
       const res = await axios.put("/profile/update", form, { withCredentials: true });
+      // Accept both: (1) updatedUser, (2) fallback to form
       if (res.data.success) {
-        if (onUpdate) onUpdate(form);
+        const updated = res.data.updatedUser || form;
+        if (onUpdate) onUpdate(updated);
         setStatusMsg("Profile updated!");
-        setTimeout(onClose, 1200); // Close after 1.2s
+        setTimeout(onClose, 1200);
       } else {
         setStatusMsg("Failed to update profile.");
       }
