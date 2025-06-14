@@ -1,62 +1,68 @@
-import { NavLink, useNavigate } from "react-router-dom";
+import { NavLink } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { FaUserCircle } from "react-icons/fa";
+import axios from "axios";
 import styles from "./TrainerHeader.module.css";
 
-export default function TrainerHeader() {
-  const navigate = useNavigate();
+export default function TrainerHeader({ trainer, onProfile, setTrainer }) {
+  const [dropdown, setDropdown] = useState(false);
 
-  const handleLogout = () => {
-    // Optionally clear session or localStorage here
-    navigate('/login');
-  };
+  useEffect(() => {
+    function close(e) {
+      if (!e.target.closest(`.${styles.profileBtn}`)) setDropdown(false);
+    }
+    if (dropdown) window.addEventListener("mousedown", close);
+    return () => window.removeEventListener("mousedown", close);
+  }, [dropdown]);
 
   return (
-    <div className={styles.trainerHeader}>
-      {/* Logo on the left */}
-      <div className={styles.logoContainer}>
-        <span className={styles.websiteName}>
+    <header className={styles.header}>
+      <div className={styles.leftSection}>
+        <NavLink to="/trainer" className={styles.logoContainer} style={{ textDecoration: 'none' }}>
           <span className={styles.specialR}>R</span>
           <span className={styles.namePart}>efit</span>
-        </span>
-      </div>
-
-      {/* Centered dashboard title and nav */}
-      <div className={styles.headerCenter}>
-        <h2 className={styles.headerTitle}>Trainer Dashboard</h2>
+        </NavLink>
         <nav className={styles.nav}>
-          <NavLink 
-            to="/trainer"
-            end
-            className={({ isActive }) =>
-              isActive ? styles.activeNavLink : styles.navLink
-            }
-          >
-            Home
-          </NavLink>
-          <NavLink 
-            to="/trainer/add-class"
-            className={({ isActive }) =>
-              isActive ? styles.activeNavLink : styles.navLink
-            }
-          >
-            Add Class
-          </NavLink>
-          <NavLink 
-            to="/trainer/modify-class"
-            className={({ isActive }) =>
-              isActive ? styles.activeNavLink : styles.navLink
-            }
-          >
-            Modify Class
-          </NavLink>
-          <button
-            onClick={handleLogout}
-            className={styles.navLink}
-            style={{ background: "none", border: "none", cursor: "pointer", padding: 0 }}
-          >
-            Logout
-          </button>
+          <NavLink className={styles.link} to="/trainer" end>Home</NavLink>
+          <NavLink className={styles.link} to="/trainer/add-class">Add Class</NavLink>
+          <NavLink className={styles.link} to="/trainer/modify-class">Modify Class</NavLink>
+          <NavLink className={styles.link} to="/trainer/classes">My Classes</NavLink>
         </nav>
       </div>
-    </div>
+      <div className={styles.rightSection}>
+        <div
+          className={styles.profileBtn}
+          onClick={() => setDropdown((v) => !v)}
+        >
+          <FaUserCircle size={28} style={{ marginRight: 7, verticalAlign: "middle" }} />
+          <span className={styles.userName}>
+            {(trainer?.FirstName || "") + " " + (trainer?.LastName || "")}
+          </span>
+          <div className={dropdown ? styles.dropdownActive : styles.dropdown}>
+            <div
+              className={styles.dropLink}
+              onClick={() => {
+                setDropdown(false);
+                if (onProfile) onProfile();
+              }}
+            >
+              Profile
+            </div>
+            <div
+              className={styles.dropLink}
+              onClick={async () => {
+                try {
+                  await axios.post("/logout", {}, { withCredentials: true });
+                } catch (e) {}
+                setTrainer(null);
+                window.location = "/login";
+              }}
+            >
+              Logout
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
   );
 }

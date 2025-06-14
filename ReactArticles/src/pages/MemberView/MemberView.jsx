@@ -4,6 +4,7 @@ import styles from "./MemberView.module.css";
 import MemberHeader from "./MemberHeader";
 import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
+import MyBookedClasses from "./MyBookedClasses";
 
 const images = [
   "/img/img1.jpg",
@@ -58,7 +59,9 @@ export default function MemberView({ user, setUser }) {
     return null;
   }
 
-  return (
+  return ( 
+    <>
+    <MemberHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
     <div className={styles.bgWrapper}>
       {images.map((img, idx) => (
         <div
@@ -73,7 +76,6 @@ export default function MemberView({ user, setUser }) {
         />
       ))}
       <div className={styles.overlay} />
-      <MemberHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
       <main className={styles.mainContent}>
         <div className={styles.welcomeContainer}>
           <h1 className={styles.welcomeTitle}>
@@ -92,5 +94,6 @@ export default function MemberView({ user, setUser }) {
         onUpdate={setUser}
       />
     </div>
+    </>
   );
 }

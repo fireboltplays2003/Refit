@@ -17,12 +17,10 @@ export default function MyMembership({ user, setUser }) {
   const [membership, setMembership] = useState(null);
   const [daysLeft, setDaysLeft] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [cancelRequested, setCancelRequested] = useState(false);
   const [authorized, setAuthorized] = useState(false);
   const navigate = useNavigate();
   const [showProfile, setShowProfile] = useState(false);
 
-  // Check user role/auth (do not update user data here)
   useEffect(() => {
     if (!user || !user.Role) return;
     if (user.Role !== "member") {
@@ -32,7 +30,6 @@ export default function MyMembership({ user, setUser }) {
     }
   }, [user, navigate]);
 
-  // Fetch membership data
   useEffect(() => {
     axios.get("/member/my-membership", { withCredentials: true })
       .then(res => {
@@ -41,25 +38,29 @@ export default function MyMembership({ user, setUser }) {
         const today = new Date();
         const end = new Date(res.data.EndDate);
         setDaysLeft(Math.max(0, Math.ceil((end - today) / (1000 * 60 * 60 * 24))));
-        const key = "cancelRequested_" + (res.data.ID || res.data.MembershipID || res.data.id || "");
-        const cancelFlag = localStorage.getItem(key);
-        setCancelRequested(cancelFlag === "1");
       })
       .catch(() => setLoading(false));
   }, []);
 
-  const requestCancel = async () => {
+  async function handleCancelMembership() {
+    if (!window.confirm("Are you sure? This will remove your membership and log you out.")) return;
+  
     try {
-      await axios.post("/member/request-cancel-membership", {}, { withCredentials: true });
-      setCancelRequested(true);
-      const key = "cancelRequested_" + (membership.ID || membership.MembershipID || membership.id || "");
-      localStorage.setItem(key, "1");
-    } catch {
-      alert("Could not send request. Try again.");
+      // Call the backend to remove membership and set role to 'user'
+      await axios.post("/member/cancel-membership", {}, { withCredentials: true });
+  
+      // NOW call /logout to destroy session and clear cookie!
+      await axios.post("/logout", {}, { withCredentials: true });
+  
+      setUser({});
+      // Optionally show a message here before navigating away
+      window.location.href = "/login"; // force hard redirect to login
+    } catch (err) {
+      alert("Failed to cancel membership. Please try again.");
     }
-  };
+  }
+  
 
-  // Dynamic accent class
   const accentClass =
     membership?.PlanName === "Premium"
       ? styles.premiumAccent
@@ -95,10 +96,9 @@ export default function MyMembership({ user, setUser }) {
           </div>
           <button
             className={styles.cancelBtn}
-            onClick={requestCancel}
-            disabled={cancelRequested}
+            onClick={handleCancelMembership}
           >
-            {cancelRequested ? "Cancellation Requested" : "Cancel Membership"}
+            Cancel Membership
           </button>
         </div>
       </div>

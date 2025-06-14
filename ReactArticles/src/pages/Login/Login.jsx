@@ -22,27 +22,17 @@ export default function Login({ setIsLoggedIn, setUser }) { // <-- add setUser h
     function fetchData() {
         setLoading(true);
         axios.post("login", { email, password })
-            .then(() => {
-                // <-- After login success, fetch /whoami to update global user!
-                axios.get("/whoami", { withCredentials: true })
-                    .then(res => {
-                        setUser(res.data); // <-- update App.js state!
-                        // Now, redirect based on their role:
-                        if (res.data.Role === "admin") {
-                            navigate("/admin");
-                        } else if (res.data.Role === "trainer") {
-                            navigate("/trainer");
-                        } else if (res.data.Role === "user") {
-                            navigate("/user");
-                        }
-                        else {
-                            navigate("/member");
-                        }
-                    })
-                    .catch(() => {
-                        setError("Failed to get user info after login.");
-                    })
-                    .finally(() => setLoading(false));
+            .then(res => {
+                setUser(res.data); // Set user from /login response
+                if (res.data.Role === "admin") {
+                    navigate("/admin");
+                } else if (res.data.Role === "trainer") {
+                    navigate("/trainer");
+                } else if (res.data.Role === "user") {
+                    navigate("/user");
+                } else {
+                    navigate("/member");
+                }
             })
             .catch(() => {
                 setLoading(false);

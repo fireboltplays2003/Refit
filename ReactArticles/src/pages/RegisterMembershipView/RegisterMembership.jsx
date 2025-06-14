@@ -21,20 +21,20 @@ export default function RegisterMembership({ user, setUser }) {
   const [error, setError] = useState("");
   const [showProfile, setShowProfile] = useState(false);
   const [authorized, setAuthorized] = useState(false);
-  const [justRegistered, setJustRegistered] = useState(false);
+  const [justRegisteredAndLoggedOut, setJustRegisteredAndLoggedOut] = useState(false);
 
   const navigate = useNavigate();
   const paypalScriptLoaded = useRef(false);
   const paypalBtnsInstance = useRef(null);
 
   useEffect(() => {
-    if (!justRegistered && user && user.Role && user.Role !== "user") {
-      navigate("/" + user.Role);
-    } else if (user && user.Role === "user") {
+    if (justRegisteredAndLoggedOut) return; // Block navigation after logout
+    if (user && user.Role === "user") {
       setAuthorized(true);
+    } else if (user && user.Role && user.Role !== "user") {
+      navigate("/" + user.Role);
     }
-    // eslint-disable-next-line
-  }, [user, navigate, justRegistered]);
+  }, [user, navigate, justRegisteredAndLoggedOut]);
 
   useEffect(() => {
     if (paypalScriptLoaded.current) return;
@@ -63,65 +63,35 @@ export default function RegisterMembership({ user, setUser }) {
 
     paypalBtnsInstance.current = window.paypal.Buttons({
       createOrder: async () => {
-        const res = await axios.post("http://localhost:8801/api/paypal/create-order", {
+        const res = await axios.post("/api/paypal/create-order", {
           amount: finalPrice
         });
         return res.data.id;
       },
       onApprove: async (data) => {
         try {
-          await axios.post("http://localhost:8801/api/paypal/capture-order", { orderID: data.orderID });
+          await axios.post("/api/paypal/capture-order", { orderID: data.orderID });
 
-          // 2. Register membership and get membership info for the receipt
-          const membershipRes = await axios.post(
-            "http://localhost:8801/user/register-membership",
-            {
-              userId: user.UserID,
-              membershipTypeId: selectedPlan.id,
-              months: duration
-            },
-            { withCredentials: true }
-          );
+          // Register membership and update role
+          await axios.post("/user/register-membership", {
+            userId: user.UserID,
+            membershipTypeId: selectedPlan.id,
+            months: duration
+          }, { withCredentials: true });
 
-          // 3. Update user role
-          await axios.post(
-            "http://localhost:8801/user/update-role",
-            {
-              userId: user.UserID,
-              newRole: "member"
-            },
-            { withCredentials: true }
-          );
+          await axios.post("/user/update-role", {
+            userId: user.UserID,
+            newRole: "member"
+          }, { withCredentials: true });
 
-          // 3a. Update global user state with new role
-          setUser(prevUser => ({
-            ...prevUser,
-            Role: "member"
-          }));
-
-          setJustRegistered(true); // Prevent effect from navigating again
-
-          // 4. Send receipt (only if registration succeeded)
-          await axios.post(
-            "http://localhost:8801/user/send-receipt",
-            {
-              userId: user.UserID,
-              planName: selectedPlan.name,
-              duration,
-              total: finalPrice,
-              startDate: membershipRes.data.startDate,
-              endDate: membershipRes.data.endDate
-            },
-            { withCredentials: true }
-          );
-
-          // 5. Show success, then navigate to member view after 3 seconds
-          setMessage("Membership registered and role updated! A receipt was sent to your email.");
-          setError("");
+          // Log out
+          await axios.post("/logout", {}, { withCredentials: true });
+          setUser({});
+          setJustRegisteredAndLoggedOut(true);
+          setMessage("Membership registered! Please log in again to access your member features.");
           setTimeout(() => {
-            navigate("/member");
-          }, 3000);
-
+            navigate("/login");
+          }, 2200);
         } catch (err) {
           setError("Something went wrong after payment.");
           console.error("Payment error:", err);
@@ -138,7 +108,7 @@ export default function RegisterMembership({ user, setUser }) {
       }
       document.getElementById("paypal-membership-button")?.replaceChildren();
     };
-  }, [paypalReady, selectedPlan, duration, finalPrice, user, navigate, setUser, justRegistered]);
+  }, [paypalReady, selectedPlan, duration, finalPrice, user, navigate, setUser]);
 
   const handlePlanSelect = (plan) => {
     setSelectedPlan(plan);
@@ -155,7 +125,8 @@ export default function RegisterMembership({ user, setUser }) {
     setError("");
   };
 
-  if (!authorized) return null;
+  // If not authorized or just logged out, do not render the PayPal logic.
+  if (!authorized && !justRegisteredAndLoggedOut) return null;
 
   return (
     <>

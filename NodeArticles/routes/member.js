@@ -126,20 +126,8 @@ router.get('/my-membership', (req, res) => {
   });
 });
 
-//STILL NOT DONE! 
-router.post('/request-cancel-membership', (req, res) => {
-  const userId = req.session.user?.UserID || req.body.userId;
-  if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-  const msg = "Member requested membership cancellation";
-  db.query(`
-    INSERT INTO notifications (MessageContent, Status, NotificationDate, UserID, Type)
-    VALUES (?, 'pending', NOW(), ?, 'cancellation')
-  `, [msg, userId], (err) => {
-    if (err) return res.status(500).json({ error: "DB error" });
-    res.json({ success: true });
-  });
-});
+
 
 // PLANS config (keep in backend, same as frontend)
 const plans = [
@@ -287,6 +275,113 @@ router.post("/renew-membership", async (req, res) => {
   } catch (e) {
     res.status(500).json({ error: "Unexpected server error" });
   }
+});
+// routes/member.js
+router.get('/my-booked-classes', (req, res) => {
+  const user = req.session.user;
+  if (!user || user.Role !== "member") {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  db.query(`
+    SELECT c.ClassID, ct.type AS ClassType, c.Schedule, c.time, 
+           t.FirstName AS TrainerFirstName, t.LastName AS TrainerLastName
+    FROM members_classes mc
+    JOIN classes c ON mc.ClassID = c.ClassID
+    JOIN class_types ct ON c.ClassType = ct.id
+    JOIN users t ON c.TrainerID = t.UserID
+    WHERE mc.MemberID = ?
+    ORDER BY c.Schedule DESC, c.time DESC
+  `, [user.UserID], (err, rows) => {
+    if (err) {
+      return res.status(500).json({ error: "DB error" });
+    }
+    res.json(rows);
+  });
+});
+
+// Cancel a booked class by the member
+router.post("/cancel-booked-class", (req, res) => {
+  const user = req.session.user;
+  const { classId } = req.body;
+
+  // 2. Log the received payload
+
+  if (!user || user.Role !== "member") {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  if (!classId) {
+    console.log("Missing classId in payload.");
+    return res.status(400).json({ error: "Missing classId" });
+  }
+
+
+  // 4. Show what bookings currently exist for this user in the DB (async!)
+  db.query(
+    `SELECT * FROM members_classes WHERE MemberID = ?`,
+    [user.UserID],
+    (errCheck, rows) => {
+      if (errCheck) console.log("Error fetching user's bookings:", errCheck);
+      else console.log("Current bookings for user:", rows);
+
+      // 5. Proceed with deletion
+      db.query(
+        `DELETE FROM members_classes WHERE ClassID = ? AND MemberID = ?`,
+        [classId, user.UserID],
+        (err, result) => {
+          if (err) {
+            console.log("DB error on DELETE:", err);
+            return res.status(500).json({ error: "DB error" });
+          }
+          if (result.affectedRows === 0) {
+            console.log("Booking not found for given ClassID/MemberID.");
+            return res.status(404).json({ error: "Booking not found or already cancelled" });
+          }
+
+          // 6. Credit back a class
+          db.query(
+            `UPDATE membership SET ClassAmount = ClassAmount + 1 
+             WHERE UserID = ? ORDER BY EndDate DESC LIMIT 1`,
+            [user.UserID],
+            (err2) => {
+              if (err2) console.error("Failed to credit class back:", err2);
+              res.json({ success: true });
+            }
+          );
+        }
+      );
+    }
+  );
+});
+
+
+
+// Cancel full membership: delete all bookings, membership, update user role, logout
+router.post("/cancel-membership", (req, res) => {
+  const user = req.session.user;
+  if (!user || user.Role !== "member") {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const userId = user.UserID;
+
+  // 1. Delete all their class bookings
+  db.query("DELETE FROM members_classes WHERE MemberID = ?", [userId], (err1) => {
+    if (err1) return res.status(500).json({ error: "DB error on deleting classes" });
+
+    // 2. Delete all their memberships
+    db.query("DELETE FROM membership WHERE UserID = ?", [userId], (err2) => {
+      if (err2) return res.status(500).json({ error: "DB error on deleting membership" });
+
+      // 3. Set their user role to "user"
+      db.query("UPDATE users SET Role = 'user' WHERE UserID = ?", [userId], (err3) => {
+        if (err3) return res.status(500).json({ error: "DB error on updating role" });
+
+        // 4. Destroy session (logout)
+        req.session.destroy(() => {
+          res.json({ success: true });
+        });
+      });
+    });
+  });
 });
 
 module.exports = router;

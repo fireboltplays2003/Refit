@@ -5,6 +5,9 @@ import MemberHeader from "../MemberView/MemberHeader";
 import ProfileModal from "../../components/ProfileModal";
 import Footer from "../../components/Footer";
 
+// --- Adjust this price if you want ---
+const CLASS_PRICE = 120; // <--- Set your class price (ILS)
+
 function toDisplayDate(isoDate) {
   if (!isoDate) return "";
   try {
@@ -34,7 +37,24 @@ export default function BookView({ user, setUser }) {
   const [membershipInfo, setMembershipInfo] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
 
-  // Get Membership info (includes EndDate & PlanName)
+  // NEW: Booked class IDs state and loading state
+  const [bookedClassIds, setBookedClassIds] = useState([]);
+  const [bookedLoading, setBookedLoading] = useState(true);
+
+  // Fetch booked class IDs FIRST
+  useEffect(() => {
+    setBookedLoading(true);
+    axios.get("/member/my-booked-classes", { withCredentials: true })
+      .then(res => {
+        const ids = Array.isArray(res.data)
+          ? res.data.map(cls => String(cls.ClassID))
+          : [];
+        setBookedClassIds(ids);
+      })
+      .catch(() => setBookedClassIds([]))
+      .finally(() => setBookedLoading(false));
+  }, []);
+
   useEffect(() => {
     axios.get("/member/my-membership", { withCredentials: true })
       .then(res => {
@@ -53,26 +73,30 @@ export default function BookView({ user, setUser }) {
   useEffect(() => {
     if (paypalScriptLoaded.current) return;
     const script = document.createElement("script");
-    script.src = "https://www.paypal.com/sdk/js?client-id=AYHk_RKasr6nntaQY1qj9Gr4ftu1xpACfC11Bb1OPboYvJ8kaw_hZrE5V2V9-sZtzdnJaNM_ctUggH1V";
+    script.src = "https://www.paypal.com/sdk/js?client-id=AYHk_RKasr6nntaQY1qj9Gr4ftu1xpACfC11Bb1OPboYvJ8kaw_hZrE5V2V9-sZtzdnJaNM_ctUggH1V&currency=ILS";
     script.addEventListener("load", () => setPaypalReady(true));
     document.body.appendChild(script);
     paypalScriptLoaded.current = true;
   }, []);
 
   useEffect(() => {
-    axios.get("http://localhost:8801/member/class-types", { withCredentials: true })
+    axios.get("/member/class-types", { withCredentials: true })
       .then(res => setClassTypes(res.data))
       .catch(() => setError("Failed to fetch class types."));
   }, []);
 
   useEffect(() => {
-    axios.get("http://localhost:8801/member/class-amount", { withCredentials: true })
+    axios.get("/member/class-amount", { withCredentials: true })
       .then(res => setClassAmount(res.data.classAmount))
       .catch(() => setClassAmount(0));
   }, []);
 
-  // Fetch classes, but filter out any class after membership end date
+  // MAIN: Only fetch all classes AFTER bookedClassIds are loaded
   useEffect(() => {
+    if (bookedLoading) {
+      setClasses([]); // Or don't render anything until loaded
+      return;
+    }
     setClasses([]);
     setSelectedClassId(null);
     setError("");
@@ -81,12 +105,11 @@ export default function BookView({ user, setUser }) {
     if (selectedType) body.classTypeName = selectedType;
     if (selectedDate) body.date = selectedDate;
 
-    axios.post("http://localhost:8801/member/classes", body, { withCredentials: true })
+    axios.post("/member/classes", body, { withCredentials: true })
       .then(res => {
         let filteredClasses = res.data;
         const endDate = membershipInfo?.EndDate;
         if (endDate) {
-          // Always compare as YYYY-MM-DD
           filteredClasses = res.data.filter(cls => {
             const classDate = typeof cls.Schedule === "string"
               ? cls.Schedule.slice(0, 10)
@@ -94,27 +117,38 @@ export default function BookView({ user, setUser }) {
             return classDate <= endDate;
           });
         }
+        // Remove booked classes!
+        filteredClasses = filteredClasses.filter(
+          cls => !bookedClassIds.includes(String(cls.ClassID))
+        );
         setClasses(filteredClasses);
       })
       .catch(() => setError("Failed to fetch classes."));
-  }, [selectedType, selectedDate, membershipInfo]);
+    // eslint-disable-next-line
+  }, [selectedType, selectedDate, membershipInfo, bookedClassIds, bookedLoading]);
 
   useEffect(() => {
     const container = document.getElementById("paypal-button-container");
     if (!paypalReady || !selectedClassId || !container || !window.paypal) return;
     container.innerHTML = "";
+
     window.paypal.Buttons({
       createOrder: async () => {
-        const res = await axios.post("http://localhost:8801/api/paypal/create-order");
+        const res = await axios.post("/api/paypal/create-order", {
+          amount: CLASS_PRICE // <--- Price sent to backend/PayPal
+        });
         return res.data.id;
       },
       onApprove: async (data) => {
-        await axios.post("http://localhost:8801/api/paypal/capture-order", { orderID: data.orderID });
-        await axios.post("http://localhost:8801/member/save-booking", { classId: selectedClassId }, { withCredentials: true });
+        await axios.post("/api/paypal/capture-order", { orderID: data.orderID });
+        await axios.post("/member/save-booking", { classId: selectedClassId }, { withCredentials: true });
+        setClasses(prev => prev.filter(c => c.ClassID !== selectedClassId));
         setMessage("Payment successful and class booked!");
+        setSelectedClassId(null);
       },
       onError: () => setError("Payment failed.")
     }).render("#paypal-button-container");
+
     return () => { if (container) container.innerHTML = ""; };
   }, [paypalReady, selectedClassId]);
 
@@ -127,11 +161,13 @@ export default function BookView({ user, setUser }) {
   const handleBookWithCredit = async () => {
     if (!selectedClassId) return setError("Please select a class.");
     try {
-      await axios.post("http://localhost:8801/member/use-class", {}, { withCredentials: true });
-      await axios.post("http://localhost:8801/member/save-booking", { classId: selectedClassId }, { withCredentials: true });
+      await axios.post("/member/use-class", {}, { withCredentials: true });
+      await axios.post("/member/save-booking", { classId: selectedClassId }, { withCredentials: true });
       setClassAmount(prev => prev - 1);
+      setClasses(prev => prev.filter(c => c.ClassID !== selectedClassId));
       setMessage("Class booked with class credit!");
       setError("");
+      setSelectedClassId(null);
     } catch {
       setError("Booking failed. No credits or server error.");
     }
@@ -170,23 +206,33 @@ export default function BookView({ user, setUser }) {
           <p className={styles.classCredits}>
             <strong>Your Class Credits: </strong> {classAmount}
           </p>
-          <div className={styles.classList}>
-            {classes.map(cls => (
-              <button
-                key={cls.ClassID}
-                onClick={() => handleClassSelect(cls.ClassID)}
-                className={
-                  styles.classButton + " " +
-                  (selectedClassId === cls.ClassID ? styles.classButtonSelected : "")
-                }
-                type="button"
-              >
-                <strong>Type:</strong> {cls.ClassType}<br />
-                <strong>Date:</strong> {toDisplayDate(cls.Schedule)} at {cls.time}<br />
-                <strong>Trainer:</strong> {cls.TrainerFirstName} {cls.TrainerLastName}
-              </button>
-            ))}
-          </div>
+
+          {/* Loader for bookedClassIds */}
+          {bookedLoading ? (
+            <div style={{ color: "#ccc", fontSize: "1.2rem", margin: "2rem auto" }}>
+              Loading available classes...
+            </div>
+          ) : (
+            <div className={styles.classList}>
+              {classes.length === 0 && <div style={{ color: "#eee", margin: "2rem auto" }}>No available classes</div>}
+              {classes.map(cls => (
+                <button
+                  key={cls.ClassID}
+                  onClick={() => handleClassSelect(cls.ClassID)}
+                  className={
+                    styles.classButton + " " +
+                    (selectedClassId === cls.ClassID ? styles.classButtonSelected : "")
+                  }
+                  type="button"
+                >
+                  <strong>Type:</strong> {cls.ClassType}<br />
+                  <strong>Date:</strong> {toDisplayDate(cls.Schedule)} at {cls.time}<br />
+                  <strong>Trainer:</strong> {cls.TrainerFirstName} {cls.TrainerLastName}
+                </button>
+              ))}
+            </div>
+          )}
+
           <button
             onClick={handleBookWithCredit}
             disabled={classAmount <= 0 || !selectedClassId}
@@ -201,6 +247,12 @@ export default function BookView({ user, setUser }) {
               style={{ marginTop: "12px" }}
               key={selectedClassId || "none"}
             ></div>
+            {/* ---- SHOW PRICE HERE IF A CLASS IS SELECTED ---- */}
+            {selectedClassId && (
+              <div style={{ margin: "12px 0 0 0", color: "#6ea8ff", fontWeight: "bold", fontSize: "1.22rem" }}>
+                Price to pay: {CLASS_PRICE} ₪
+              </div>
+            )}
             {!paypalReady && <p className={styles.paypalMsg}>Loading PayPal button...</p>}
             {paypalReady && !selectedClassId && (
               <p className={styles.paypalMsg}>Select a class to enable PayPal payment.</p>

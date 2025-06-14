@@ -16,14 +16,13 @@ export default function MemberHeader({ user, onProfile, setUser }) {
     return () => window.removeEventListener("mousedown", close);
   }, [dropdown]);
 
-  // LOGOUT handler (no separate component needed)
+  // LOGOUT handler
   async function handleLogout() {
     try {
       await axios.post("/logout", {}, { withCredentials: true });
-      setUser({}); // Clear global user state
+      setUser({});
       navigate("/login");
     } catch {
-      // Optionally, show error message
       setUser({});
       navigate("/login");
     }
@@ -41,6 +40,7 @@ export default function MemberHeader({ user, onProfile, setUser }) {
           <NavLink className={styles.link} to="/membership">My Membership</NavLink>
           <NavLink className={styles.link} to="/renew-membership">Renew Membership</NavLink>
           <NavLink className={styles.link} to="/book-class">Book Class</NavLink>
+          <NavLink className={styles.link} to="/my-booked-classes">My Booked Classes</NavLink>
         </nav>
       </div>
       <div className={styles.rightSection}>

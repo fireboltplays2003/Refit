@@ -11,7 +11,8 @@ const dbSingleton = {
                 host: '127.0.0.1',
                 user: 'root',
                 password: '',
-                database: 'refit'
+                database: 'refit',
+                dateStrings: true
             });
 
             // Connect to the database
