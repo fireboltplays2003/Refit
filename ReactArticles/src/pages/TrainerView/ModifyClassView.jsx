@@ -61,7 +61,8 @@ export default function ModifyClassView({ user, setUser }) {
   function fetchClasses() {
     axios.get("/trainer/classes", { withCredentials: true })
       .then((res) => setClasses(res.data))
-      .catch(() => setError("Could not fetch classes."));
+      .catch(() => setError(""));
+
   }
 
   useEffect(() => {

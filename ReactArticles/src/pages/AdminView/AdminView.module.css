@@ -1,225 +1,339 @@
-/* Admin View Container */
-.adminContainer {
-    padding: 7rem 2rem 2rem;
-    min-height: 100vh;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.02));
-}
-
-/* Welcome Section */
-.welcomeSection {
-    background: white;
-    border-radius: 12px;
-    padding: 2rem;
-    margin-bottom: 2rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    border-left: 4px solid #ff6b6b;
-}
-
-.welcomeTitle {
-    font-size: 1.8rem;
-    color: #333;
-    margin-bottom: 0.5rem;
-    font-weight: 700;
-}
-
-.welcomeSubtitle {
-    color: #666;
-    font-size: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-/* Dashboard Grid */
-.dashboardGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-/* Stats Card */
-.statsCard {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
-
-.statsCard:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-}
-
-.statsTitle {
-    font-size: 0.9rem;
-    color: #666;
-    margin-bottom: 0.5rem;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.statsValue {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #333;
-    margin: 0.5rem 0;
-}
-
-.statsChange {
-    display: flex;
-    align-items: center;
-    font-size: 0.9rem;
-}
-
-.statsChange.positive {
-    color: #4caf50;
-}
-
-.statsChange.negative {
-    color: #f44336;
-}
-
-/* Pending Trainers Section */
-.sectionTitle {
-    font-size: 1.5rem;
-    color: #333;
-    margin: 2rem 0 1.5rem;
-    font-weight: 600;
+/* src/pages/AdminView.module.css */
+.bgWrapper {
     position: relative;
-    padding-left: 1rem;
-}
-
-.sectionTitle::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 4px;
-    height: 60%;
-    background: #ff6b6b;
-    border-radius: 2px;
-}
-
-.pendingTrainersGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.trainerCard {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-    transition: all 0.3s ease;
-}
-
-.trainerCard:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
-}
-
-.trainerName {
-    font-size: 1.2rem;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 0.5rem;
-}
-
-.trainerEmail {
-    color: #666;
-    font-size: 0.9rem;
-    margin-bottom: 1rem;
-    display: block;
-}
-
-.trainerActions {
+    min-height: 100vh;
     display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.button {
-    padding: 0.6rem 1.2rem;
-    border: none;
-    border-radius: 6px;
+    flex-direction: column;
+  }
+  .bgImg {
+    position: absolute;
+    inset: 0;
+    background-size: cover;
+    background-position: center;
+    filter: grayscale(0.2) brightness(0.18);
+    transition: opacity 1.2s;
+    z-index: 0;
+  }
+  .overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(17, 18, 19, 0.85);
+    z-index: 2;
+  }
+  .mainContent {
+    position: relative;
+    z-index: 3;
+    width: 100%;
+    padding: 2rem 0 8rem 0;
+    min-height: 82vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .statsRow {
+    width: 100%;
+    max-width: 1100px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 2rem;
+    margin-bottom: 2rem;
+    margin-top: 2.5rem;
+  }
+  .statCard {
+    background: #22262b;
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 2px 14px rgba(20,20,40,0.19);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    color: #e9fbe7;
+    font-size: 1.1rem;
     font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.9rem;
-    display: inline-flex;
+  }
+  .statCard > div:last-child {
+    font-size: 2.1rem;
+    font-weight: bold;
+    margin-top: 0.7rem;
+    color: #74ffd2;
+    letter-spacing: 2px;
+  }
+  
+  .platformOverview {
+    width: 100%;
+    max-width: 700px;
+    background: #22262b;
+    border-radius: 1rem;
+    margin: 2rem 0 0 0;
+    padding: 1.4rem 2.2rem 2.4rem 2.2rem;
+    color: #fff;
+    box-shadow: 0 1px 8px rgba(24,24,36,0.19);
+  }
+  .platformOverview h2 {
+    margin: 0 0 1rem 0;
+    font-weight: 600;
+    font-size: 1.3rem;
+  }
+  .chartWrapper {
+    width: 100%;
+    height: 230px;
+    background: #23282e;
+    border-radius: 10px;
+    display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.5rem;
-}
-
-.buttonPrimary {
-    background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
-    color: white;
-    box-shadow: 0 2px 8px rgba(255, 107, 107, 0.3);
-}
-
-.buttonPrimary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
-}
-
-.buttonDanger {
-    background: #f5f5f5;
-    color: #f44336;
-    border: 1px solid #ffcdd2;
-}
-
-.buttonDanger:hover {
-    background: #ffebee;
-    transform: translateY(-2px);
-}
-
-/* Status Message */
-.statusMessage {
-    padding: 1rem;
-    border-radius: 6px;
-    margin-bottom: 1.5rem;
-    font-weight: 500;
+    border: 1.3px dashed #bbb;
+    margin-top: 0.6rem;
+  }
+  
+  /* Pending Trainers Panel (slide in) */
+  .openPendingBtn {
+    margin-top: 2.5rem;
+    padding: 0.9rem 2.4rem;
+    background: linear-gradient(90deg, #53ffd4 0%, #a5fff5 100%);
+    color: #07352b;
+    font-size: 1.14rem;
+    font-weight: 700;
+    border-radius: 1.8rem;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 3px 14px rgba(50,255,221,0.09);
+    transition: transform 0.1s;
+  }
+  .openPendingBtn:hover {
+    transform: scale(1.04);
+    background: linear-gradient(90deg, #29ffd6 0%, #72e5ee 100%);
+  }
+  
+  /* Sliding Panel */
+  .pendingSlider {
+    position: fixed;
+    top: 0;
+    right: -480px;
+    width: 450px;
+    height: 100vh;
+    background: #202428;
+    color: #fff;
+    z-index: 99;
+    box-shadow: -4px 0 22px #0008;
+    transition: right 0.45s cubic-bezier(0.6, 0.09, 0.42, 0.91);
+    overflow-y: auto;
+    padding: 2rem 1.1rem 3rem 1.1rem;
+    border-left: 2.3px solid #35ffe4;
     display: flex;
+    flex-direction: column;
+    min-width: 330px;
+    max-width: 92vw;
+  }
+  .pendingSliderOpen {
+    right: 0;
+  }
+  .pendingHeader {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 0.5rem;
-}
+    font-size: 1.24rem;
+    font-weight: 600;
+    border-bottom: 1px solid #333;
+    padding-bottom: 1rem;
+    margin-bottom: 2.2rem;
+  }
+  .closeBtn {
+    background: transparent;
+    border: none;
+    color: #f56;
+    font-size: 2rem;
+    cursor: pointer;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .pendingTrainersGrid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.6rem;
+  }
+  .trainerCardAdmin {
+    background: #292d34;
+    border-radius: 1rem;
+    box-shadow: 0 2px 14px rgba(20,20,40,0.10);
+    padding: 1.3rem 1.1rem 1.2rem 1.1rem;
+    margin-bottom: 0.9rem;
+  }
+  .trainerNameAdmin {
+    font-weight: 700;
+    font-size: 1.13rem;
+    color: #6afdc1;
+    margin-bottom: 0.6rem;
+  }
+  .trainerDetailAdmin {
+    font-size: 0.99rem;
+    color: #fff;
+    margin-bottom: 0.26rem;
+  }
+  .certLinkAdmin {
+    color: #53ffe0;
+    text-decoration: underline;
+    font-weight: 700;
+  }
+  .trainerActionsAdmin {
+    margin-top: 0.95rem;
+    display: flex;
+    gap: 1rem;
+  }
+  .buttonApprove,
+  .buttonReject {
+    font-size: 1rem;
+    border: none;
+    border-radius: 7px;
+    padding: 0.6rem 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .buttonApprove {
+    background: #49ffc1;
+    color: #043d25;
+  }
+  .buttonReject {
+    background: #ff7373;
+    color: #fff;
+  }
+  .emptyStateAdmin {
+    margin: 2.5rem 0 0 0;
+    text-align: center;
+    color: #ddd;
+    font-size: 1.12rem;
+    font-weight: 500;
+  }
+  .pendingStatus {
+    margin-top: 1.2rem;
+    color: #47fdb2;
+    font-size: 1.13rem;
+    font-weight: bold;
+    text-align: center;
+  }
+  
+  /* Make footer always at the bottom */
+  :global(footer), footer {
+    position: fixed !important;
+    left: 0; right: 0; bottom: 0;
+    width: 100vw;
+    z-index: 101;
+    background: #181b1f !important;
+  }
+  /* Only sections you need to ADD or edit for new design: */
 
-.statusMessage.success {
-    background: #e8f5e9;
-    color: #2e7d32;
-    border-left: 4px solid #4caf50;
-}
-
-.statusMessage.error {
-    background: #ffebee;
-    color: #c62828;
-    border-left: 4px solid #f44336;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .adminContainer {
-        padding: 6rem 1rem 1rem;
-    }
-    
-    .dashboardGrid,
-    .pendingTrainersGrid {
-        grid-template-columns: 1fr;
-    }
-    
-    .welcomeSection {
-        padding: 1.5rem 1rem;
-    }
-    
-    .trainerActions {
-        flex-direction: column;
-    }
-    
-    .button {
-        width: 100%;
-    }
-}
+.pendingSection {
+    width: 100%;
+    max-width: 1100px;
+    margin: 3.6rem auto 2rem auto;
+    background: #21262c;
+    border-radius: 1.2rem;
+    box-shadow: 0 2px 18px rgba(20,20,40,0.13);
+    padding: 1.4rem 2.1rem 2.5rem 2.1rem;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .pendingHeaderSection {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 1.24rem;
+    font-weight: 700;
+    border-bottom: 1px solid #2a2d35;
+    padding-bottom: 1rem;
+    margin-bottom: 2.1rem;
+  }
+  
+  .pendingTrainersGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+  
+  .trainerCardAdmin {
+    background: #292d34;
+    border-radius: 1rem;
+    box-shadow: 0 2px 14px rgba(20,20,40,0.10);
+    padding: 1.3rem 1.1rem 1.2rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .trainerNameAdmin {
+    font-weight: 700;
+    font-size: 1.13rem;
+    color: #6afdc1;
+    margin-bottom: 0.6rem;
+  }
+  .trainerDetailAdmin {
+    font-size: 0.99rem;
+    color: #fff;
+    margin-bottom: 0.26rem;
+  }
+  .certLinkAdmin {
+    color: #53ffe0;
+    text-decoration: underline;
+    font-weight: 700;
+  }
+  .trainerActionsAdmin {
+    margin-top: 0.95rem;
+    display: flex;
+    gap: 1rem;
+  }
+  .buttonApprove,
+  .buttonReject {
+    font-size: 1rem;
+    border: none;
+    border-radius: 7px;
+    padding: 0.6rem 1.2rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .buttonApprove {
+    background: #49ffc1;
+    color: #043d25;
+  }
+  .buttonReject {
+    background: #ff7373;
+    color: #fff;
+  }
+  .emptyStateAdmin {
+    margin: 2.5rem 0 0 0;
+    text-align: center;
+    color: #ddd;
+    font-size: 1.12rem;
+    font-weight: 500;
+  }
+  .pendingStatus {
+    margin-left: 1.8rem;
+    color: #47fdb2;
+    font-size: 1.12rem;
+    font-weight: 700;
+  }
+  
+  .platformOverviewHeader {
+    color: #49aaff;
+    font-size: 1.3rem;
+    font-weight: 700;
+    margin-bottom: 0.7rem;
+    text-align: center;
+    letter-spacing: 1px;
+    border-bottom: 2px solid #3ca5e7;
+    width: 56%;
+    min-width: 200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding-bottom: 0.35rem;
+  }
+  
+  footer, :global(footer) {
+    position: fixed !important;
+    left: 0; right: 0; bottom: 0;
+    width: 100vw;
+    z-index: 101;
+    background: #181b1f !important;
+  }
+  

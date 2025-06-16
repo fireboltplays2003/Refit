@@ -1,48 +1,67 @@
-import { NavLink, useNavigate } from "react-router-dom";
-import classes from "./AdminHeader.module.css";
-import axios from "axios";
+import { NavLink } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { FaUserCircle } from "react-icons/fa";
+import styles from "./AdminHeader.module.css";
 
-export default function AdminHeader() {
-    const navigate = useNavigate();
+export default function AdminHeader({ user, onProfile, setUser }) {
+  const [dropdown, setDropdown] = useState(false);
 
-    function handleLogout() {
-        // Call the server's logout endpoint to destroy the session
-        axios.post('http://localhost:8801/logout', {}, { withCredentials: true })
-        .then(() => {
-            // Clear session cookie just in case
-            document.cookie = 'connect.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-            // Redirect
-            navigate('/login');
-        })
-        .catch((error) => {
-            alert("Logout failed: " + (error.response?.data?.error || "Unknown error"));
-        });
-        
-        // Clear the session cookie
-        document.cookie = 'connect.sid=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
-        
-        // Navigate to login page using react-router
-        navigate('/login');
+  useEffect(() => {
+    function close(e) {
+      if (!e.target.closest(`.${styles.profileBtn}`)) setDropdown(false);
     }
+    if (dropdown) window.addEventListener("mousedown", close);
+    return () => window.removeEventListener("mousedown", close);
+  }, [dropdown]);
 
-    // Function to determine active link class
-    const getNavLinkClass = ({ isActive }) => 
-        isActive ? `${classes.link} ${classes.active}` : classes.link;
-
-    return (
-        <header className={classes.header}>
-            <div className={classes.logo}>
-                <span className={classes.specialR}>R</span>efit <span className={classes.adminText}>Admin</span>
+  return (
+    <header className={styles.header}>
+      <div className={styles.leftSection}>
+        <NavLink to="/admin" className={styles.logoContainer} style={{ textDecoration: 'none' }}>
+          <span className={styles.specialR}>R</span>
+          <span className={styles.namePart}>efit</span>
+        </NavLink>
+        <nav className={styles.nav}>
+          <NavLink className={styles.link} to="/admin">Home</NavLink>
+          <NavLink className={styles.link} to="/admin/members">Members</NavLink>
+          <NavLink className={styles.link} to="/admin/classes">Classes</NavLink>
+          <NavLink className={styles.link} to="/admin/reports">Reports</NavLink>
+        </nav>
+      </div>
+      <div className={styles.rightSection}>
+        <div
+          className={styles.profileBtn}
+          onClick={() => setDropdown((v) => !v)}
+        >
+          <FaUserCircle size={28} style={{ marginRight: 7, verticalAlign: "middle" }} />
+          <span className={styles.userName}>
+            {(user?.FirstName || "") + " " + (user?.LastName || "")}
+          </span>
+          <div className={dropdown ? styles.dropdownActive : styles.dropdown}>
+            <div
+              className={styles.dropLink}
+              onClick={() => {
+                setDropdown(false);
+                if (onProfile) onProfile();
+              }}
+            >
+              Profile
             </div>
-            <nav className={classes.nav}>
-                <NavLink to="/admin" className={getNavLinkClass} end>Dashboard</NavLink>
-                <NavLink to="/admin/reports" className={getNavLinkClass}>Reports</NavLink>
-                <NavLink to="/admin/members" className={getNavLinkClass}>Members</NavLink>
-                <NavLink to="/admin/classes" className={getNavLinkClass}>Classes</NavLink>
-                <button onClick={handleLogout} className={classes.logoutButton}>
-                    Logout
-                </button>
-            </nav>
-        </header>
-    );
+            <div
+              className={styles.dropLink}
+              onClick={async () => {
+                try {
+                  await fetch('/logout', { method: 'POST', credentials: 'include' });
+                } catch (e) {}
+                setUser && setUser(null);
+                window.location = "/login";
+              }}
+            >
+              Logout
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
 }

@@ -1,122 +1,199 @@
-/* Admin Header Styles */
 .header {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
-    padding: 0.8rem 2.5rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    position: fixed;
+    position: sticky;
     top: 0;
     left: 0;
     right: 0;
     z-index: 1000;
-    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.logo {
-    font-size: 1.8rem;
-    font-weight: 800;
-    color: #2d3436;
+    padding: 1.2rem 2.5rem;
+    background: rgba(24, 23, 29, 0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.22);
+    border-bottom: 1px solid rgba(255,255,255,0.09);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 60px;
+  }
+  
+  .logoContainer {
     display: flex;
     align-items: center;
-    letter-spacing: -0.5px;
-    font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-.specialR {
+    font-size: 2.1rem;
+  }
+  
+  .namePart {
+    display: inline-block;
+    margin-right: 4px;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-family: 'Arial Black', 'Arial Bold', Arial, sans-serif;
+    font-size: 1.8rem;
+    font-weight: 800;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.17);
+    transition: all 0.3s ease;
+  }
+  
+  .specialR {
     display: inline-block;
     transform: scaleX(-1) rotate(-10deg);
     font-weight: 900;
     color: #ff6b6b;
-    margin-right: 2px;
-    font-size: 1.1em;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-.adminText {
-    background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    font-weight: 700;
-    margin-left: 4px;
-    font-size: 0.9em;
-    position: relative;
-    top: -1px;
-}
-
-.nav {
+    margin-right: -2px;
+    font-size: 2.2rem;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.23);
+  }
+  
+  .nav {
     display: flex;
-    gap: 1.8rem;
     align-items: center;
-}
-
-.link {
-    color: #555;
+    gap: 2.5rem;
+    max-width: 1200px;
+    margin: 0;
+  }
+  
+  .link {
+    color: rgba(255,255,255,0.85);
     text-decoration: none;
-    font-weight: 500;
-    padding: 0.6rem 0.5rem;
+    font-weight: 600;
+    font-size: 1.07rem;
+    letter-spacing: 1px;
+    padding: 0.5rem 1.2rem;
+    border-radius: 6px;
+    transition: all 0.3s;
     position: relative;
-    transition: all 0.3s ease;
-    font-size: 0.95rem;
-    letter-spacing: 0.3px;
-}
-
-.link::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #ff6b6b, #ff8e8e);
-    border-radius: 2px;
-    transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-}
-
-.link:hover {
-    color: #ff6b6b;
-}
-
-.link:hover::after {
-    width: 100%;
-}
-
-.link.active {
-    color: #ff6b6b;
-    font-weight: 600;
-}
-
-.link.active::after {
-    width: 100%;
-}
-
-.logoutButton {
-    background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
-    color: white;
-    border: none;
-    padding: 0.65rem 1.8rem;
-    border-radius: 30px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.2);
-    font-size: 0.9rem;
-    letter-spacing: 0.5px;
-    margin-left: 0.5rem;
     text-transform: uppercase;
-    font-family: 'Poppins', sans-serif;
-}
-
-.logoutButton:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.3);
-    background: linear-gradient(135deg, #ff5e5e, #ff7b7b);
-}
-
-.logoutButton:active {
-    transform: translateY(0);
-}
+  }
+  
+  .link:hover {
+    color: #fff;
+    background: rgba(255,107,107,0.12);
+  }
+  
+  .link.active {
+    color: #ff6b6b;
+    font-weight: 700;
+  }
+  
+  
+  
+  /* Profile Dropdown */
+  .profileBtn {
+    position: relative;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: #fff;
+    min-width: 130px;
+    font-size: 1.08rem;
+    user-select: none;
+    font-weight: 600;
+    gap: 5px;
+    margin-left: 1rem;
+    transition: color 0.18s;
+  }
+  .profileBtn:hover .userName {
+    color: #ff6b6b;
+  }
+  
+  .userName {
+    max-width: 160px;        /* Change this to 160px for more space */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: 1.08rem;
+    font-weight: 600;
+    transition: color 0.2s;
+    direction: ltr;
+  }
+  
+  .dropdown,
+  .dropdownActive {
+    display: none;
+    position: absolute;
+    top: 42px;
+    right: 0;
+    background: #23232e;
+    border-radius: 8px;
+    box-shadow: 0 4px 22px #0005;
+    min-width: 160px;
+    padding: 10px 0;
+    z-index: 120;
+  }
+  
+  .dropdownActive {
+    display: block;
+    animation: dropIn 0.23s;
+  }
+  @keyframes dropIn {
+    from { opacity: 0; transform: translateY(-8px);}
+    to { opacity: 1; transform: translateY(0);}
+  }
+  
+  .dropLink {
+    color: #fff;
+    text-decoration: none;
+    padding: 12px 20px;
+    display: block;
+    font-size: 1.07rem;
+    transition: background 0.13s, color 0.13s;
+    cursor: pointer;
+  }
+  .dropLink:hover {
+    background: #2e2e39;
+    color: #ff3b3b;
+  }
+  
+  /* Tablet styles */
+  @media (max-width: 900px) {
+    .header {
+      padding: 1rem 1.5rem;
+    }
+    .nav {
+      gap: 1.2rem;
+    }
+    .logoContainer {
+      font-size: 1.7rem;
+    }
+    .namePart {
+      font-size: 1.5rem;
+    }
+    .link {
+      font-size: 0.97rem;
+      padding: 0.45rem 0.8rem;
+    }
+  }
+  @media (max-width: 540px) {
+    .header {
+      padding: 0.8rem 0.5rem;
+      min-height: 45px;
+    }
+    .logoContainer {
+      font-size: 1.18rem;
+    }
+    .nav {
+      gap: 0.6rem;
+    }
+    .link {
+      font-size: 0.75rem;
+      padding: 0.3rem 0.6rem;
+    }
+    .profileBtn, .userName {
+      font-size: 0.83rem;
+      min-width: 65px;
+      max-width: 65px;
+    }
+  }
+  .leftSection {
+    display: flex;
+    align-items: center;
+    gap: 2.5rem;
+  }
+  
+  .rightSection {
+    display: flex;
+    align-items: center;
+    /* No gap needed, just profile */
+  }
+  

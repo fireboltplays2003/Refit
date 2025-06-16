@@ -1,165 +1,196 @@
+// src/pages/AdminView.jsx
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-import { useState, useEffect, useCallback } from "react";
 import AdminHeader from "./AdminHeader";
 import Footer from "../../components/Footer";
-import classes from "./AdminView.module.css";
+import ProfileModal from "../../components/ProfileModal";
+import styles from "./AdminView.module.css";
+import axios from "axios";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-export default function AdminView() {
-    const navigate = useNavigate();
-    const [showContent, setShowContent] = useState(false);
-    const [name, setName] = useState("");
-    const [pendingTrainers, setPendingTrainers] = useState([]);
-    const [statusMsg, setStatusMsg] = useState("");
-    const [stats, setStats] = useState({
-        totalUsers: 0,
-        activeUsers: 0,
-        totalTrainers: 0,
-        pendingTrainers: 0
-    });
+const images = [
+  "/img/img1.jpg",
+  "/img/img2.jpg",
+  "/img/img3.jpg",
+  "/img/img4.jpg",
+  "/img/img5.jpg",
+  "/img/membershipImage.png"
+];
 
-    const fetchDashboardStats = useCallback(async () => {
-        setStats(prev => ({ ...prev }));
-    }, []);
+export default function AdminView({ user, setUser }) {
+  const navigate = useNavigate();
+  const [authorized, setAuthorized] = useState(false);
+  const [bgIndex, setBgIndex] = useState(0);
+  const [showProfile, setShowProfile] = useState(false);
 
-    useEffect(() => {
-        axios.get("/whoami", { withCredentials: true })
-            .then(res => {
-                setName(res.data.FirstName + " " + res.data.LastName);
-                if (res.data.Role !== 'admin') {
-                    navigate("/" + res.data.Role);
-                } else {
-                    setShowContent(true);
-                    fetchDashboardStats();
-                }
-            })
-            .catch(() => {
-                navigate("/login");
-            });
-    }, [navigate, fetchDashboardStats]);
+  // Dashboard stats
+  const [stats, setStats] = useState({
+    totalMembers: "-",
+    totalTrainers: "-",
+    totalClasses: "-",
+    activeMemberships: "-"
+  });
 
-    useEffect(() => {
-        if (showContent) {
-            axios.get("/admin/pending-trainers")
-                .then(res => {
-                    setPendingTrainers(res.data);
-                    setStats(prev => ({
-                        ...prev,
-                        pendingTrainers: res.data.length
-                    }));
-                })
-                .catch(() => setPendingTrainers([]));
-        }
-    }, [showContent, statusMsg]);
+  // Pending trainers
+  const [pending, setPending] = useState([]);
+  const [pendingLoading, setPendingLoading] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState("");
 
-    function handleApprove(userId) {
-        setStatusMsg("");
-        axios.post(`/admin/approve-trainer`, { UserID: userId })
-            .then(() => {
-                setStatusMsg({ type: "success", message: "Trainer approved successfully!" });
-                setPendingTrainers(pendingTrainers.filter(t => t.UserID !== userId));
-                setStats(prev => ({
-                    ...prev,
-                    pendingTrainers: prev.pendingTrainers - 1,
-                    totalTrainers: prev.totalTrainers + 1
-                }));
-            })
-            .catch(() => setStatusMsg({ type: "error", message: "Error approving trainer." }));
+  // Chart data
+  const chartData = [
+    { name: "Members", value: Number(stats.totalMembers) || 0 },
+    { name: "Trainers", value: Number(stats.totalTrainers) || 0 },
+    { name: "Classes", value: Number(stats.totalClasses) || 0 },
+    { name: "Active Memberships", value: Number(stats.activeMemberships) || 0 }
+  ];
+
+  useEffect(() => {
+    if (!user || !user.Role) return;
+    if (user.Role !== "admin") {
+      navigate("/" + user.Role);
+    } else {
+      setAuthorized(true);
     }
+  }, [user, navigate]);
 
-    function handleReject(userId) {
-        setStatusMsg("");
-        axios.post(`/admin/reject-trainer`, { UserID: userId })
-            .then(() => {
-                setStatusMsg({ type: "success", message: "Trainer rejected successfully!" });
-                setPendingTrainers(pendingTrainers.filter(t => t.UserID !== userId));
-                setStats(prev => ({
-                    ...prev,
-                    pendingTrainers: prev.pendingTrainers - 1
-                }));
-            })
-            .catch(() => setStatusMsg({ type: "error", message: "Error rejecting trainer." }));
-    }
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setBgIndex(prev => (prev + 1) % images.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
-    if (!showContent) return (
-        <div className={classes.loadingContainer}>
-            <div className={classes.loadingSpinner}></div>
-            <p>Loading dashboard...</p>
+  useEffect(() => {
+axios.get("http://localhost:8801/admin/dashboard-stats", { withCredentials: true })
+      .then(res => setStats(res.data))
+      .catch(() => setStats({ totalMembers: "-", totalTrainers: "-", totalClasses: "-", activeMemberships: "-" }));
+  }, []);
+
+  // Fetch pending trainers on load
+  useEffect(() => {
+    setPendingLoading(true);
+    axios.get("/admin/pending-trainers", { withCredentials: true })
+      .then(res => setPending(res.data))
+      .catch(() => setPending([]))
+      .finally(() => setPendingLoading(false));
+  }, [pendingStatus]);
+
+  function handleApprove(UserID) {
+    setPendingStatus("");
+    axios.post("/admin/approve-trainer", { UserID }, { withCredentials: true })
+      .then(() => {
+        setPendingStatus("Trainer approved!");
+        setPending(prev => prev.filter(t => t.UserID !== UserID));
+      })
+      .catch(() => setPendingStatus("Error approving trainer."));
+  }
+
+  function handleReject(UserID) {
+    setPendingStatus("");
+    axios.post("/admin/reject-trainer", { UserID }, { withCredentials: true })
+      .then(() => {
+        setPendingStatus("Trainer rejected.");
+        setPending(prev => prev.filter(t => t.UserID !== UserID));
+      })
+      .catch(() => setPendingStatus("Error rejecting trainer."));
+  }
+
+  if (!authorized) return null;
+
+  return (
+    <div className={styles.bgWrapper}>
+      {images.map((img, idx) => (
+        <div
+          key={idx}
+          className={styles.bgImg}
+          style={{
+            backgroundImage: `url(${img})`,
+            opacity: bgIndex === idx ? 1 : 0,
+            zIndex: 1,
+            transition: "opacity 1.2s"
+          }}
+        />
+      ))}
+      <div className={styles.overlay} />
+      <AdminHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
+      <main className={styles.mainContent}>
+        {/* Stats */}
+        <div className={styles.statsRow}>
+          <div className={styles.statCard}><div>Total Members</div><div>{stats.totalMembers}</div></div>
+          <div className={styles.statCard}><div>Total Trainers</div><div>{stats.totalTrainers}</div></div>
+          <div className={styles.statCard}><div>Total Classes</div><div>{stats.totalClasses}</div></div>
+          <div className={styles.statCard}><div>Active Memberships</div><div>{stats.activeMemberships}</div></div>
         </div>
-    );
 
-    return (
-        <div className={classes.adminContainer}>
-            <AdminHeader />
-            <main>
-                <section className={classes.welcomeSection}>
-                    <h1 className={classes.welcomeTitle}>Welcome back, {name}!</h1>
-                    <p className={classes.welcomeSubtitle}>Here's what's happening with your gym today.</p>
-                </section>
-
-                {statusMsg && (
-                    <div className={`${classes.statusMessage} ${classes[`statusMessage${statusMsg.type}`]}`}>
-                        {statusMsg.type === 'success' ? (
-                            <>
-                                <span>✓</span> {statusMsg.message}
-                            </>
-                        ) : (
-                            <>
-                                <span>⚠</span> {statusMsg.message}
-                            </>
-                        )}
-                    </div>
-                )}
-
-                {/* Pending Trainers Section */}
-                <h2 className={classes.sectionTitle}>Pending Trainer Approvals</h2>
-                {pendingTrainers.length > 0 ? (
-                    <div className={classes.pendingTrainersGrid}>
-                        {pendingTrainers.map(trainer => (
-                            <div key={trainer.UserID} className={classes.trainerCard}>
-                                <div className={classes.trainerName}>
-                                    ⏳ {trainer.FirstName} {trainer.LastName}
-                                </div>
-                                <div className={classes.trainerDetail}><b>Email:</b> {trainer.Email}</div>
-                                <div className={classes.trainerDetail}><b>Phone:</b> {trainer.Phone}</div>
-                                <div className={classes.trainerDetail}><b>Date of Birth:</b> {trainer.DateOfBirth?.slice(0,10)}</div>
-                                <div className={classes.trainerDetail}><b>Availability:</b> {trainer.Availability}</div>
-                                <div className={classes.trainerDetail}>
-                                    <b>Certification:</b>{" "}
-                                    <a
-                                        href={`http://localhost:8801/admin/trainer-cert/${trainer.UserID}`}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={classes.certLink}
-                                    >
-                                        View/Download
-                                    </a>
-                                </div>
-                                <div className={classes.trainerActions}>
-                                    <button 
-                                        className={`${classes.button} ${classes.buttonPrimary}`}
-                                        onClick={() => handleApprove(trainer.UserID)}
-                                    >
-                                        Approve
-                                    </button>
-                                    <button 
-                                        className={`${classes.button} ${classes.buttonDanger}`}
-                                        onClick={() => handleReject(trainer.UserID)}
-                                    >
-                                        Reject
-                                    </button>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className={classes.emptyState}>
-                        <div style={{ fontSize: '3rem', marginBottom: '1rem', color: '#e0e0e0' }}>✓</div>
-                        <p>No pending trainer approvals at the moment.</p>
-                    </div>
-                )}
-            </main>
-            <Footer />
+        {/* Chart */}
+        <div className={styles.platformOverview}>
+          <div className={styles.platformOverviewHeader}>Platform Overview</div>
+          <div className={styles.chartWrapper}>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={chartData}>
+                <XAxis dataKey="name" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="value" fill="#5efcb1" radius={[8, 8, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-    );
+
+        {/* Pending Trainers Section */}
+        <div className={styles.pendingSection}>
+          <div className={styles.pendingHeaderSection}>
+            <span>Pending Trainer Approvals</span>
+            {pendingStatus && (
+              <span className={styles.pendingStatus}>{pendingStatus}</span>
+            )}
+          </div>
+          {pendingLoading ? (
+            <div className={styles.emptyStateAdmin}>Loading...</div>
+          ) : pending.length === 0 ? (
+            <div className={styles.emptyStateAdmin}>No pending trainers.</div>
+          ) : (
+            <div className={styles.pendingTrainersGrid}>
+              {pending.map(trainer => (
+                <div className={styles.trainerCardAdmin} key={trainer.UserID}>
+                  <div className={styles.trainerNameAdmin}>⏳ {trainer.FirstName} {trainer.LastName}</div>
+                  <div className={styles.trainerDetailAdmin}><b>Email:</b> {trainer.Email}</div>
+                  <div className={styles.trainerDetailAdmin}><b>Phone:</b> {trainer.Phone}</div>
+                  <div className={styles.trainerDetailAdmin}><b>Date of Birth:</b> {trainer.DateOfBirth?.slice(0,10)}</div>
+                  <div className={styles.trainerDetailAdmin}>
+                    <b>Certification:</b>{" "}
+                    {trainer.Certifications
+                      ? (
+                        <a
+                          href={`http://localhost:8801/uploads/${trainer.Certifications}`}
+                          className={styles.certLinkAdmin}
+                          download={trainer.Certifications}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          View Document
+                        </a>
+                      )
+                      : <span style={{ color: "#f36" }}>No document</span>
+                    }
+                  </div>
+                  <div className={styles.trainerActionsAdmin}>
+                    <button className={styles.buttonApprove} onClick={() => handleApprove(trainer.UserID)}>Approve</button>
+                    <button className={styles.buttonReject} onClick={() => handleReject(trainer.UserID)}>Reject</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </main>
+      <Footer />
+      <ProfileModal
+        show={showProfile}
+        onClose={() => setShowProfile(false)}
+        userData={user}
+        onUpdate={setUser}
+      />
+    </div>
+  );
 }

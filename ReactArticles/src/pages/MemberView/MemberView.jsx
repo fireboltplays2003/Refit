@@ -4,7 +4,6 @@ import styles from "./MemberView.module.css";
 import MemberHeader from "./MemberHeader";
 import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
-import MyBookedClasses from "./MyBookedClasses";
 
 const images = [
   "/img/img1.jpg",

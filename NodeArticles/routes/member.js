@@ -12,7 +12,7 @@ router.get("/class-types", (req, res) => {
       console.error("Error fetching class types:", err);
       return res.status(500).json({ error: "Database error" });
     }
-    res.json(results); // [{ id: 1, type: 'legs' }, ...]
+    res.json(results); 
   });
 });
 

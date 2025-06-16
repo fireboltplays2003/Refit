@@ -2,55 +2,84 @@ const express = require("express");
 const router = express.Router();
 const dbSingleton = require("../dbSingleton");
 const bcrypt = require('bcrypt');
-const multer = require("multer");
-const upload = multer(); 
-const fileType = require('file-type');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+
 const db = dbSingleton.getConnection();
 
-// Register Trainer (with clear error handling)
+// --- Make sure /uploads exists ---
+const uploadsDir = path.join(__dirname, '..', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir);
+}
+
+// Multer disk storage for file uploads (store as original name)
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname); // <-- Just use the original file name
+  }
+});
+const upload = multer({ storage });
+
 router.post("/register-trainer", upload.single("certifications"), (req, res) => {
-    const { firstName, lastName, phone, email, dateOfBirth, password, availability } = req.body;
-    const certifications = req.file ? req.file.buffer : null;
+  const { firstName, lastName, phone, email, dateOfBirth, password } = req.body;
+  const certifications = req.file ? req.file.filename : null;
 
-    if (!firstName || !lastName || !phone || !email || !dateOfBirth || !password || !availability || !certifications) {
-        return res.status(400).json({ error: "All fields including certifications are required." });
-    }
+  if (!firstName || !lastName || !phone || !email || !dateOfBirth || !password || !certifications) {
+    return res.status(400).json({ error: "All fields including certifications are required." });
+  }
 
-    db.query("SELECT * FROM users WHERE email = ? OR phone = ?", [email, phone], (err, results) => {
-        if (err) {
-            console.error("Database error (check email/phone):", err);
-            return res.status(500).json({ error: "Internal server error. Please try again later." });
+  db.query("SELECT * FROM users WHERE email = ? OR phone = ?", [email, phone], (err, results) => {
+    if (err) return res.status(500).json({ error: "Internal server error." });
+    if (results.some(u => u.email === email)) return res.status(400).json({ error: "Email already exists." });
+    if (results.some(u => u.phone === phone)) return res.status(400).json({ error: "Phone already exists." });
+
+    bcrypt.genSalt(10, (err, salt) => {
+      if (err) return res.status(500).json({ error: "Failed to secure password." });
+
+      bcrypt.hash(password, salt, (err, hashedPassword) => {
+        if (err) return res.status(500).json({ error: "Failed to secure password." });
+
+        const userQuery = "INSERT INTO users (firstName, lastName, phone, email, dateOfBirth, role, password) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        db.query(userQuery, [firstName, lastName, phone, email, dateOfBirth, 'onHold', hashedPassword], (err, userResult) => {
+          if (err) return res.status(500).json({ error: "Failed to create user account. Try again." });
+          const userId = userResult.insertId;
+
+          // Save only the file name in Certifications (varchar)
+          const trainerQuery = "INSERT INTO trainers (UserID, Certifications) VALUES (?, ?)";
+          db.query(trainerQuery, [userId, certifications], (err) => {
+            if (err) return res.status(500).json({ error: "Failed to register trainer info." });
+            res.json({ message: "Trainer registration submitted. Await admin approval." });
+          });
+        });
+      });
+    });
+  });
+});
+
+/**
+ * GET /trainer-cert/:userId
+ * Returns the certificate file by file name from /uploads for download
+ */
+router.get("/trainer-cert/:userId", (req, res) => {
+    const userId = req.params.userId;
+    const sql = "SELECT Certifications FROM trainers WHERE UserID = ?";
+    db.query(sql, [userId], (err, results) => {
+        if (err || results.length === 0) {
+            return res.status(404).send("Certification not found.");
         }
-        if (results.some(u => u.email === email)) return res.status(400).json({ error: "Email already exists." });
-        if (results.some(u => u.phone === phone)) return res.status(400).json({ error: "Phone number already exists." });
+        const filename = results[0].Certifications;
+        if (!filename) return res.status(404).send("Certification not found.");
 
-        bcrypt.genSalt(10, (err, salt) => {
-            if (err) return res.status(500).json({ error: "Failed to secure password." });
-
-            bcrypt.hash(password, salt, (err, hashedPassword) => {
-                if (err) return res.status(500).json({ error: "Failed to secure password." });
-
-                const userQuery = "INSERT INTO users (firstName, lastName, phone, email, dateOfBirth, role, password) VALUES (?, ?, ?, ?, ?, ?, ?)";
-                db.query(userQuery, [firstName, lastName, phone, email, dateOfBirth, 'onHold', hashedPassword], (err, userResult) => {
-                    if (err) {
-                        console.error("Database error (insert user):", err);
-                        return res.status(500).json({ error: "Failed to create user account. Try again." });
-                    }
-                    const userId = userResult.insertId;
-
-                    const trainerQuery = "INSERT INTO trainers (UserID, Certifications, Availability) VALUES (?, ?, ?)";
-                    db.query(trainerQuery, [userId, certifications, availability], (err) => {
-                        if (err) {
-                            console.error("Database error (insert trainer info):", err);
-                            if (err.code === 'ER_NO_SUCH_TABLE') {
-                                return res.status(500).json({ error: "Trainer table does not exist. Contact admin." });
-                            }
-                            return res.status(500).json({ error: "Failed to register trainer info. Contact admin." });
-                        }
-                        res.json({ message: "Trainer registration submitted. Await admin approval." });
-                    });
-                });
-            });
+        const filePath = path.join(__dirname, '..', 'uploads', filename);
+        res.download(filePath, filename, (err) => {
+            if (err) {
+                res.status(404).send("File not found on server.");
+            }
         });
     });
 });
@@ -62,7 +91,7 @@ router.get("/pending-trainers", (req, res) => {
     const sql = `
         SELECT 
             u.UserID, u.FirstName, u.LastName, u.Phone, u.Email, u.DateOfBirth, u.Role,
-            t.Availability
+            t.Certifications
         FROM users u
         JOIN trainers t ON u.UserID = t.UserID
         WHERE u.Role = 'onHold'
@@ -76,34 +105,6 @@ router.get("/pending-trainers", (req, res) => {
     });
 });
 
-// ----------------------
-// Download/view trainer certification by UserID
-// ----------------------
-router.get("/trainer-cert/:userId", (req, res) => {
-    const userId = req.params.userId;
-    const sql = "SELECT Certifications FROM trainers WHERE UserID = ?";
-    db.query(sql, [userId], async (err, results) => {
-        if (err || results.length === 0) {
-            return res.status(404).send("Certification not found.");
-        }
-        const buffer = results[0].Certifications;
-
-        // Use file-type to guess mime and extension
-        const ft = await fileType.fromBuffer(buffer);
-
-        let mime = 'application/octet-stream';
-        let ext = 'file';
-
-        if (ft) {
-            mime = ft.mime;
-            ext = ft.ext;
-        }
-
-        res.setHeader('Content-Disposition', `attachment; filename=certification.${ext}`);
-        res.setHeader('Content-Type', mime);
-        res.send(buffer);
-    });
-});
 // ----------------------
 // Approve trainer
 // ----------------------
@@ -133,4 +134,48 @@ router.post("/reject-trainer", (req, res) => {
     });
 });
 
+// Get all class types with max participants
+router.get("/class-types", (req, res) => {
+    db.query("SELECT id, type, MaxParticipants FROM class_types", (err, results) => {
+        if (err) return res.status(500).json({ error: "Database error" });
+        res.json(results);
+    });
+});
+
+// Update max participants for a class type
+router.put("/class-type/:id/max", (req, res) => {
+    const { id } = req.params;
+    const { MaxParticipants } = req.body;
+    db.query(
+        "UPDATE class_types SET MaxParticipants = ? WHERE id = ?",
+        [MaxParticipants, id],
+        (err, result) => {
+            if (err) return res.status(500).json({ error: "Database error" });
+            res.json({ success: true });
+        }
+    );
+});
+// Dashboard stats for admin
+router.get("/dashboard-stats", async (req, res) => {
+    try {
+      // Total users with 'member', 'trainer', 'onHold' roles
+      const [users, trainers, classes, memberships, pending] = await Promise.all([
+        new Promise((resolve, reject) => db.query("SELECT COUNT(*) as count FROM users WHERE Role = 'member'", (e, r) => e ? reject(e) : resolve(r[0].count))),
+        new Promise((resolve, reject) => db.query("SELECT COUNT(*) as count FROM users WHERE Role = 'trainer'", (e, r) => e ? reject(e) : resolve(r[0].count))),
+        new Promise((resolve, reject) => db.query("SELECT COUNT(*) as count FROM classes", (e, r) => e ? reject(e) : resolve(r[0].count))),
+        new Promise((resolve, reject) => db.query("SELECT COUNT(*) as count FROM membership WHERE EndDate >= CURDATE()", (e, r) => e ? reject(e) : resolve(r[0].count))),
+        new Promise((resolve, reject) => db.query("SELECT COUNT(*) as count FROM users WHERE Role = 'onHold'", (e, r) => e ? reject(e) : resolve(r[0].count))),
+      ]);
+      res.json({
+        members: users,
+        trainers,
+        classes,
+        activeMemberships: memberships,
+        pendingTrainers: pending,
+      });
+    } catch (e) {
+      res.status(500).json({ error: "Stats error" });
+    }
+  });
+  
 module.exports = router;

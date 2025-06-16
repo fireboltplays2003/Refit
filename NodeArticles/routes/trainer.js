@@ -78,18 +78,35 @@ router.post("/create-class", (req, res) => {
   schedule = String(schedule).slice(0, 10);
   if (typeof classTypeId === "string") classTypeId = parseInt(classTypeId);
 
-  const query = `
-    INSERT INTO classes (ClassType, TrainerID, Schedule, time, MaxParticipants)
-    VALUES (?, ?, ?, ?, 0)
-  `;
-  db.query(query, [classTypeId, trainerId, schedule, time], (err, results) => {
-    if (err) {
-      console.error("DB Insert Error:", err);
-      return res.status(500).json({ error: "Database error" });
+  // Fetch MaxParticipants for this class type
+  db.query(
+    "SELECT MaxParticipants FROM class_types WHERE id = ?",
+    [classTypeId],
+    (err, rows) => {
+      if (err || !rows.length) {
+        return res.status(400).json({ error: "Invalid class type" });
+      }
+      const maxParticipants = rows[0].MaxParticipants || 0;
+
+      const query = `
+        INSERT INTO classes (ClassType, TrainerID, Schedule, time, MaxParticipants)
+        VALUES (?, ?, ?, ?, ?)
+      `;
+      db.query(
+        query,
+        [classTypeId, trainerId, schedule, time, maxParticipants],
+        (err2, results) => {
+          if (err2) {
+            console.error("DB Insert Error:", err2);
+            return res.status(500).json({ error: "Database error" });
+          }
+          res.status(200).json({ message: "Class created successfully", classId: results.insertId });
+        }
+      );
     }
-    res.status(200).json({ message: "Class created successfully", classId: results.insertId });
-  });
+  );
 });
+
 
 // UPDATE a class (with email notifications)
 // UPDATE a class (with smart email change reporting)

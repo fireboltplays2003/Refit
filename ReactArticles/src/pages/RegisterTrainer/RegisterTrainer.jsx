@@ -11,21 +11,20 @@ export default function RegisterTrainer() {
         email: "",
         dateOfBirth: "",
         password: "",
-        confirmPassword: "",
-        availability: "",
+        confirmPassword: ""
     });
     const [certifications, setCertifications] = useState(null); // file
     const [success, setSuccess] = useState("");
     const [error, setError] = useState("");
 
-    const { firstName, lastName, phone, email, dateOfBirth, password, confirmPassword, availability } = formData;
+    const { firstName, lastName, phone, email, dateOfBirth, password, confirmPassword } = formData;
 
     function checkValues() {
-        if (!firstName || !lastName || !phone || !email || !dateOfBirth || !password || !confirmPassword || !availability || !certifications) {
+        if (!firstName || !lastName || !phone || !email || !dateOfBirth || !password || !confirmPassword || !certifications) {
             setError("One field or more is missing, including certifications.");
             return;
         }
-        // Date of birth check: must be 13–100 years old
+        // Date of birth check: must be 18–100 years old
         const currentYear = new Date().getFullYear();
         const birthYear = new Date(dateOfBirth).getFullYear();
         const age = currentYear - birthYear;
@@ -63,12 +62,9 @@ export default function RegisterTrainer() {
         trainerForm.append("dateOfBirth", dateOfBirth);
         trainerForm.append("role", "onhold"); // For trainers, initial role is onhold!
         trainerForm.append("password", password);
-        trainerForm.append("availability", availability);
         trainerForm.append("certifications", certifications);
 
-        axios.post("/register/register-trainer", trainerForm, {
-            headers: { "Content-Type": "multipart/form-data" }
-        })
+        axios.post("/admin/register-trainer", trainerForm)
         .then(() => {
             setSuccess("Trainer registration submitted! Await admin approval.");
             setError("");
@@ -142,10 +138,6 @@ export default function RegisterTrainer() {
                         pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$"
                         title="Password must match the rules: at least 8 characters, uppercase, lowercase, number, and special character."
                     />
-                </div>
-                <div className={classes.formGroup}>
-                    <label htmlFor="availability" className={classes.label}>Availability</label>
-                    <input className={classes.input} type="text" id="availability" value={availability} onChange={e => setFormData({ ...formData, availability: e.target.value })} />
                 </div>
                 <div className={classes.formGroup}>
                     <label className={classes.label}>Certifications (file upload)</label>

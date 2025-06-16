@@ -38,10 +38,10 @@ function MyRoutes({ user, setUser }) {
       <Route path="/membership" element={<MyMemberShip user={user} setUser={setUser} />} /> 
       <Route path="/renew-membership" element={<RenewMembership user={user} setUser={setUser} />} />
       <Route path="/register-trainer" element={<RegisterTrainer />} />
-      <Route path="/admin" element={<AdminView />} />
-      <Route path="/admin/reports" element={<ReportsPage />} />
-      <Route path="/admin/members" element={<MembersPage />} />
-      <Route path="/admin/classes" element={<ClassesPage />} />
+      <Route path="/admin" element={<AdminView user={user} setUser={setUser} />} />
+      <Route path="/admin/reports" element={<ReportsPage user={user} setUser={setUser} />} />
+      <Route path="/admin/members" element={<MembersPage user={user} setUser={setUser} />} />
+      <Route path="/admin/classes" element={<ClassesPage user={user} setUser={setUser} />} />
       <Route path="/trainer/add-class" element={<AddClassView user={user} setUser={setUser} />} />
       <Route path="/trainer/modify-class" element={<ModifyClassView user={user} setUser={setUser} />} />
       <Route path="*" element={<NotFound />} />

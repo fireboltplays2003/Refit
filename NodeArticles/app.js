@@ -14,8 +14,9 @@ const classesRoute = require("./routes/member");
 const userRoute = require("./routes/user");
 const profileRoute = require("./routes/profile");
 const cleanupRoute = require("./routes/cleanup");
-const { cleanupOutdatedClasses } = require("./routes/cleanup"); // <-- add this line
+const { cleanupOutdatedClasses } = require("./routes/cleanup"); 
 require('./routes/renewalReminder'); 
+
 app.use(cors({
   origin: 'http://localhost:3000', 
   credentials: true
@@ -52,6 +53,8 @@ cleanupOutdatedClasses((err, removedCount) => {
   }
 });
 
+// This line must be above your app.use('/', router) lines!
+app.use('/uploads', express.static('uploads'));
 
 app.use('/login', loginRoute);
 
