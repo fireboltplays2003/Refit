@@ -155,6 +155,7 @@ router.put("/class-type/:id/max", (req, res) => {
         }
     );
 });
+
 // Dashboard stats for admin
 router.get("/dashboard-stats", async (req, res) => {
     try {
@@ -177,5 +178,59 @@ router.get("/dashboard-stats", async (req, res) => {
       res.status(500).json({ error: "Stats error" });
     }
   });
-  
+
+
+// ====================================
+// ADMIN CLASS TYPES CONTROL STARTS HERE
+// ====================================
+
+// ADD class type
+router.post("/class-types", (req, res) => {
+    const { type, MaxParticipants } = req.body;
+    if (!type || typeof MaxParticipants !== "number") {
+        return res.status(400).json({ error: "Missing type or MaxParticipants." });
+    }
+    db.query(
+        "INSERT INTO class_types (type, MaxParticipants) VALUES (?, ?)",
+        [type, MaxParticipants],
+        (err, result) => {
+            if (err) return res.status(500).json({ error: "Database error" });
+            res.json({ success: true, id: result.insertId });
+        }
+    );
+});
+
+// DELETE class type
+router.delete("/class-types/:id", (req, res) => {
+    const { id } = req.params;
+    db.query(
+        "DELETE FROM class_types WHERE id = ?",
+        [id],
+        (err, result) => {
+            if (err) return res.status(500).json({ error: "Database error" });
+            res.json({ success: true });
+        }
+    );
+});
+
+// BULK SET ALL MaxParticipants
+router.put("/class-types/set-max", (req, res) => {
+    const { max } = req.body;
+    if (typeof max !== "number") {
+        return res.status(400).json({ error: "Missing max value." });
+    }
+    db.query(
+        "UPDATE class_types SET MaxParticipants = ?",
+        [max],
+        (err, result) => {
+            if (err) return res.status(500).json({ error: "Database error" });
+            res.json({ success: true });
+        }
+    );
+});
+
+// ====================================
+// ADMIN CLASS TYPES CONTROL ENDS HERE
+// ====================================
+
 module.exports = router;
