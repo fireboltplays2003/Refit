@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
 import styles from "./MyMemberShip.module.css";
 import { FaCrown, FaGem, FaRegClock } from "react-icons/fa";
@@ -18,8 +18,11 @@ export default function MyMembership({ user, setUser }) {
   const [daysLeft, setDaysLeft] = useState(0);
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
-  const navigate = useNavigate();
+  const [successMessage, setSuccessMessage] = useState(""); // For success messages
+  const [errorMessage, setErrorMessage] = useState(""); // For error messages
+  const [confirmCancel, setConfirmCancel] = useState(false); // To handle confirmation
   const [showProfile, setShowProfile] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (!user || !user.Role) return;
@@ -44,22 +47,24 @@ export default function MyMembership({ user, setUser }) {
 
   async function handleCancelMembership() {
     if (!window.confirm("Are you sure? This will remove your membership and log you out.")) return;
-  
+
     try {
       // Call the backend to remove membership and set role to 'user'
       await axios.post("/member/cancel-membership", {}, { withCredentials: true });
-  
+
       // NOW call /logout to destroy session and clear cookie!
       await axios.post("/logout", {}, { withCredentials: true });
-  
+
       setUser({});
-      // Optionally show a message here before navigating away
-      window.location.href = "/login"; // force hard redirect to login
+      // Optionally show a success message here
+      setSuccessMessage("Your membership has been successfully canceled. You will be logged out.");
+      setTimeout(() => {
+        window.location.href = "/login"; // force hard redirect to login after a few seconds
+      }, 2000); // Wait for success message to show for 2 seconds
     } catch (err) {
-      alert("Failed to cancel membership. Please try again.");
+      setErrorMessage("Failed to cancel membership. Please try again.");
     }
   }
-  
 
   const accentClass =
     membership?.PlanName === "Premium"
@@ -94,12 +99,36 @@ export default function MyMembership({ user, setUser }) {
             </div>
             <div><b>Classes Left:</b> {membership.ClassAmount}</div>
           </div>
-          <button
-            className={styles.cancelBtn}
-            onClick={handleCancelMembership}
-          >
-            Cancel Membership
-          </button>
+
+          {/* Display success or error message */}
+          {successMessage && <div className={styles.successMsg}>{successMessage}</div>}
+          {errorMessage && <div className={styles.errorMsg}>{errorMessage}</div>}
+
+          {/* Cancel Membership Button */}
+          {!confirmCancel ? (
+            <button
+              className={styles.cancelBtn}
+              onClick={() => setConfirmCancel(true)}
+            >
+              Cancel Membership
+            </button>
+          ) : (
+            <div className={styles.confirmCancelWrapper}>
+              <span>Are you sure you want to cancel your membership?</span>
+              <button
+                onClick={handleCancelMembership}
+                className={styles.confirmCancelBtn}
+              >
+                Yes, Cancel
+              </button>
+              <button
+                onClick={() => setConfirmCancel(false)}
+                className={styles.cancelCancelBtn}
+              >
+                No
+              </button>
+            </div>
+          )}
         </div>
       </div>
       <ProfileModal

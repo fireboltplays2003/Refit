@@ -37,30 +37,55 @@ router.get("/classes", (req, res) => {
   }
   const trainerId = user.UserID;
   const sql = `
-    SELECT 
-      c.ClassID, 
-      c.ClassType, 
-      ct.type AS ClassTypeName, 
-      c.Schedule, 
-      c.time,
-      c.MaxParticipants
-    FROM classes c
-    JOIN class_types ct ON c.ClassType = ct.id
-    WHERE c.TrainerID = ?
-    ORDER BY c.Schedule DESC
-  `;
+  SELECT 
+    c.ClassID, 
+    c.ClassType, 
+    ct.type AS ClassTypeName, 
+    c.Schedule, 
+    c.time
+  FROM classes c
+  JOIN class_types ct ON c.ClassType = ct.id
+  WHERE c.TrainerID = ?
+  ORDER BY c.Schedule DESC
+`;
+
   db.query(sql, [trainerId], (err, results) => {
     if (err) {
       console.error("Error fetching classes:", err);
       return res.status(500).json({ error: "Database error" });
     }
-    const fixedResults = results.map(cls => ({
-      ...cls,
-      MaxParticipants: Number(cls.MaxParticipants) || 0,
-    }));
-    res.json(fixedResults);
+    // Just return results directly, no mapping needed unless you want to rename/remove fields
+    res.json(results);
   });
 });
+//Trainer gets all classes for adjusting the time logic in add class.
+router.get("/classes/all", (req, res) => {
+  const user = req.session.user;
+  if (!user || user.Role !== "trainer") {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const sql = `
+    SELECT 
+      c.ClassID, 
+      c.ClassType, 
+      ct.type AS ClassTypeName, 
+      c.Schedule, 
+      c.time
+    FROM classes c
+    JOIN class_types ct ON c.ClassType = ct.id
+    ORDER BY c.Schedule DESC
+  `;
+
+  db.query(sql, [], (err, results) => {
+    if (err) {
+      console.error("Error fetching all classes:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    res.json(results);
+  });
+});
+
 
 // CREATE a class
 router.post("/create-class", (req, res) => {
@@ -78,34 +103,52 @@ router.post("/create-class", (req, res) => {
   schedule = String(schedule).slice(0, 10);
   if (typeof classTypeId === "string") classTypeId = parseInt(classTypeId);
 
-  // Fetch MaxParticipants for this class type
-  db.query(
-    "SELECT MaxParticipants FROM class_types WHERE id = ?",
-    [classTypeId],
-    (err, rows) => {
-      if (err || !rows.length) {
-        return res.status(400).json({ error: "Invalid class type" });
-      }
-      const maxParticipants = rows[0].MaxParticipants || 0;
+  // Step 1: Check if any class exists at the same date & time
+  const conflictCheckQuery = `
+    SELECT COUNT(*) AS count
+    FROM classes
+    WHERE Schedule = ? AND time = ?
+  `;
 
-      const query = `
-        INSERT INTO classes (ClassType, TrainerID, Schedule, time, MaxParticipants)
-        VALUES (?, ?, ?, ?, ?)
-      `;
-      db.query(
-        query,
-        [classTypeId, trainerId, schedule, time, maxParticipants],
-        (err2, results) => {
-          if (err2) {
-            console.error("DB Insert Error:", err2);
-            return res.status(500).json({ error: "Database error" });
-          }
-          res.status(200).json({ message: "Class created successfully", classId: results.insertId });
-        }
-      );
+  db.query(conflictCheckQuery, [schedule, time], (errCheck, rowsCheck) => {
+    if (errCheck) {
+      console.error("DB Error checking existing classes:", errCheck);
+      return res.status(500).json({ error: "Database error" });
     }
-  );
+    if (rowsCheck[0].count > 0) {
+      return res.status(409).json({ error: "Another class already exists at this date and time." });
+    }
+
+    // Step 2: Fetch MaxParticipants for this class type
+    db.query(
+      "SELECT MaxParticipants FROM class_types WHERE id = ?",
+      [classTypeId],
+      (err, rows) => {
+        if (err || !rows.length) {
+          return res.status(400).json({ error: "Invalid class type" });
+        }
+        const maxParticipants = rows[0].MaxParticipants || 0;
+
+        const query = `
+          INSERT INTO classes (ClassType, TrainerID, Schedule, time)
+          VALUES (?, ?, ?, ?)
+        `;
+        db.query(
+          query,
+          [classTypeId, trainerId, schedule, time],
+          (err2, results) => {
+            if (err2) {
+              console.error("DB Insert Error:", err2);
+              return res.status(500).json({ error: "Database error" });
+            }
+            res.status(200).json({ message: "Class created successfully", classId: results.insertId });
+          }
+        );
+      }
+    );
+  });
 });
+
 
 
 // UPDATE a class (with email notifications)
@@ -213,7 +256,7 @@ router.put("/class/:classId", (req, res) => {
   });
 });
 
-// CANCEL a class (no change)
+// CANCEL a class , send email to class members
 router.delete('/class/:id', (req, res) => {
   const user = req.session.user;
   const classId = req.params.id;
@@ -281,61 +324,80 @@ router.delete('/class/:id', (req, res) => {
 });
 
 // GET all classes with their members for trainer
+// routes/trainer.js (replace your /classes-with-members route with this)
+
 router.get("/classes-with-members", (req, res) => {
   const user = req.session.user;
   if (!user || user.Role !== "trainer") {
+    console.log("[AUTH ERROR] Unauthorized access attempt");
     return res.status(401).json({ error: "Unauthorized" });
   }
+
   const trainerId = user.UserID;
-  const sql = `
-    SELECT 
+
+  // 1. Fetch all classes for this trainer, including MaxParticipants
+  const sqlClasses = `
+    SELECT
       c.ClassID,
       c.ClassType,
       ct.type AS ClassTypeName,
       c.Schedule,
       c.time,
-      c.MaxParticipants,
-      u.UserID AS MemberID,
-      u.FirstName AS MemberFirstName,
-      u.LastName AS MemberLastName,
-      u.Email AS MemberEmail,
-      u.Phone AS MemberPhone
+      ct.MaxParticipants
     FROM classes c
     JOIN class_types ct ON c.ClassType = ct.id
-    LEFT JOIN members_classes mc ON mc.ClassID = c.ClassID
-    LEFT JOIN users u ON u.UserID = mc.MemberID
     WHERE c.TrainerID = ?
     ORDER BY c.Schedule DESC, c.time DESC
   `;
-  db.query(sql, [trainerId], (err, rows) => {
+
+  db.query(sqlClasses, [trainerId], (err, classes) => {
     if (err) {
-      console.error("Error fetching classes with members:", err);
-      return res.status(500).json({ error: "Database error" });
+      console.error("[DB ERROR] Fetching classes failed:", err);
+      return res.status(500).json({ error: "Database error fetching classes" });
     }
-    const classes = {};
-    for (const row of rows) {
-      if (!classes[row.ClassID]) {
-        classes[row.ClassID] = {
-          ClassID: row.ClassID,
-          ClassType: row.ClassType,
-          ClassTypeName: row.ClassTypeName,
-          Schedule: row.Schedule,
-          time: row.time,
-          MaxParticipants: row.MaxParticipants,
-          Members: [],
-        };
-      }
-      if (row.MemberID) {
-        classes[row.ClassID].Members.push({
-          UserID: row.MemberID,
-          FirstName: row.MemberFirstName,
-          LastName: row.MemberLastName,
-          Email: row.MemberEmail,
-          Phone: row.MemberPhone,
-        });
-      }
+
+    if (!classes.length) {
+      return res.json([]);
     }
-    res.json(Object.values(classes));
+
+    // 2. Get all class IDs to fetch members in one query
+    const classIds = classes.map(c => c.ClassID);
+
+    // 3. Fetch members for all these classes
+    const sqlMembers = `
+      SELECT 
+        mc.ClassID, 
+        u.UserID, 
+        u.FirstName, 
+        u.LastName, 
+        u.Email, 
+        u.Phone
+      FROM members_classes mc
+      JOIN users u ON mc.MemberID = u.UserID
+      WHERE mc.ClassID IN (?)
+    `;
+
+    db.query(sqlMembers, [classIds], (err2, members) => {
+      if (err2) {
+        console.error("[DB ERROR] Fetching members failed:", err2);
+        return res.status(500).json({ error: "Database error fetching members" });
+      }
+
+      // 4. Group members by class
+      const membersByClass = {};
+      members.forEach(m => {
+        if (!membersByClass[m.ClassID]) membersByClass[m.ClassID] = [];
+        membersByClass[m.ClassID].push(m);
+      });
+
+      // 5. Attach members to each class object
+      const result = classes.map(cls => ({
+        ...cls,
+        Members: membersByClass[cls.ClassID] || []
+      }));
+
+      res.json(result);
+    });
   });
 });
 

@@ -2,7 +2,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminHeader from "./AdminHeader";
-import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
 import styles from "./AdminView.module.css";
 import axios from "axios";
@@ -184,7 +183,6 @@ axios.get("http://localhost:8801/admin/dashboard-stats", { withCredentials: true
           )}
         </div>
       </main>
-      <Footer />
       <ProfileModal
         show={showProfile}
         onClose={() => setShowProfile(false)}

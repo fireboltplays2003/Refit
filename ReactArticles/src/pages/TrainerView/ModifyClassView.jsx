@@ -1,23 +1,46 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import TrainerHeader from "./TrainerHeader";
 import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
+import { format, isBefore, isSameDay } from "date-fns";
+import { DayPicker } from "react-day-picker";
+import "react-day-picker/dist/style.css";
 import styles from "./ModifyClassView.module.css";
 
-// Show for select as dd/mm/yyyy
-function formatDateDMY(sqlDate) {
-  if (!sqlDate) return "";
-  const [yyyy, mm, dd] = String(sqlDate).slice(0, 10).split("-");
-  return `${dd}/${mm}/${yyyy}`;
+// Format date for display
+function formatDateDMY(date) {
+  return date ? format(date, "dd/MM/yyyy") : "";
 }
-function formatDate(sqlDate) {
-  // yyyy-mm-dd for form
-  return sqlDate ? String(sqlDate).slice(0, 10) : "";
+
+// Format date for backend ISO
+function formatDateToISO(date) {
+  return date ? format(date, "yyyy-MM-dd") : "";
 }
-function formatTime(sqlTime) {
-  if (!sqlTime) return "";
-  return sqlTime.length > 5 ? sqlTime.slice(0, 5) : sqlTime;
+
+// Format time for display in 'HH:mm'
+function formatTime(time) {
+  if (!time) return "";
+  return time.length > 5 ? time.slice(0, 5) : time; // This ensures the time is correctly formatted
+}
+
+// Get Israel current hour accurately
+function getIsraelHour() {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Jerusalem",
+    hour12: false,
+    hour: "2-digit",
+  });
+  const parts = formatter.formatToParts(new Date());
+  const hourPart = parts.find(p => p.type === "hour");
+  return hourPart ? parseInt(hourPart.value, 10) : new Date().getHours();
+}
+
+// Parse "HH:mm" string to integer hour
+function parseHourString(hourStr) {
+  if (!hourStr) return NaN;
+  const [h] = hourStr.split(":");
+  return parseInt(h, 10);
 }
 
 const images = [
@@ -32,17 +55,26 @@ const images = [
 export default function ModifyClassView({ user, setUser }) {
   const [showProfile, setShowProfile] = useState(false);
   const [bgIndex, setBgIndex] = useState(0);
-
-  const [classes, setClasses] = useState([]);
   const [classTypes, setClassTypes] = useState([]);
+  const [classes, setClasses] = useState([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [form, setForm] = useState({
     classTypeId: "",
-    schedule: "",
+    schedule: null,  // Date object
     time: "",
     maxParticipants: ""
   });
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState(""); // Initialize success state here
+  const [showCalendar, setShowCalendar] = useState(false);
+  const dateInputRef = useRef();
+
+  useEffect(() => {
+    fetchClasses();
+    axios.get("/trainer/class-types", { withCredentials: true })
+      .then((res) => setClassTypes(res.data))
+      .catch(() => setError("Could not fetch class types."));
+  }, []);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -52,85 +84,142 @@ export default function ModifyClassView({ user, setUser }) {
   }, []);
 
   useEffect(() => {
-    fetchClasses();
-    axios.get("/trainer/class-types", { withCredentials: true })
-      .then((res) => setClassTypes(res.data))
-      .catch(() => setError("Could not fetch class types."));
-  }, []);
+    function handleClickOutside(event) {
+      if (dateInputRef.current && !dateInputRef.current.contains(event.target)) {
+        setShowCalendar(false);
+      }
+    }
+    if (showCalendar) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showCalendar]);
 
   function fetchClasses() {
     axios.get("/trainer/classes", { withCredentials: true })
       .then((res) => setClasses(res.data))
       .catch(() => setError(""));
-
   }
 
+  // When selectedClassId changes, set form values accordingly
   useEffect(() => {
     if (!selectedClassId) {
-      setForm({ classTypeId: "", schedule: "", time: "", maxParticipants: "" });
+      setForm({ classTypeId: "", schedule: null, time: "", maxParticipants: "" });
       return;
     }
     const selected = classes.find(c => c.ClassID === Number(selectedClassId));
     if (selected) {
       setForm({
         classTypeId: selected.ClassType,
-        schedule: formatDate(selected.Schedule), // for <input type=date>
+        schedule: new Date(selected.Schedule),
         time: formatTime(selected.time),
-        maxParticipants: selected.MaxParticipants
+        maxParticipants: selected.MaxParticipants || ""
       });
     }
   }, [selectedClassId, classes]);
-  
-  function handleChange(e) {
-    setForm({ ...form, [e.target.name]: e.target.value });
+
+  // Generate all hours 6:00 to 23:00
+  const allHours = [];
+  for (let h = 6; h <= 23; h++) {
+    allHours.push(`${h}:00`);
   }
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  // Filter booked hours for selected date (all trainers)
+  const bookedHoursForDate = new Set();
+  if (form.schedule) {
+    const isoSelectedDate = formatDateToISO(form.schedule);
+    classes.forEach(cls => {
+      if (!cls.Schedule || !cls.time) return;
+      const classDate = String(cls.Schedule).slice(0, 10);
+      if (classDate === isoSelectedDate && cls.ClassID !== Number(selectedClassId)) {
+        bookedHoursForDate.add(cls.time.slice(0, 5));
+      }
+    });
+  }
+
+  // Available hours = all hours minus booked for selected date excluding the current class's time
+  const availableHours = allHours.filter(h => !bookedHoursForDate.has(h));
+
+  function clearMessages() {
     setError("");
-    if (!selectedClassId) return;
-    const original = classes.find(c => c.ClassID === Number(selectedClassId));
-    if (!original) {
-      setError("Original class data not found.");
+    setSuccess(""); // Clear success message as well
+  }
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    clearMessages();
+
+    if (!user?.UserID) {
+      setError("Trainer ID not found. Please log in again.");
       return;
     }
-    const isSame =
-      String(form.classTypeId) === String(original.ClassType) &&
-      (form.schedule === formatDate(original.Schedule)) &&
-      (form.time === formatTime(original.time));
-    if (isSame) {
-      setError("No changes detected. Modify at least one field to update.");
+    if (!form.classTypeId || !form.schedule || !form.time) {
+      setError("Please fill in all fields.");
       return;
     }
-    await axios.put(
-      `/trainer/class/${selectedClassId}`,
-      {
-        classTypeId: form.classTypeId,
-        schedule: form.schedule,
-        time: form.time
-      },
-      { withCredentials: true }
-    )
+
+    if (!/^\d{1,2}:00$/.test(form.time)) {
+      setError("Please select a valid hour.");
+      return;
+    }
+
+    const hourInt = parseHourString(form.time);
+
+    if (hourInt < 6 || hourInt > 23) {
+      setError("Class hour must be between 6:00 and 23:00.");
+      return;
+    }
+
+    // Safety: check if chosen hour is still available
+    if (bookedHoursForDate.has(form.time)) {
+      setError("Selected hour is already booked. Please choose another time.");
+      return;
+    }
+
+    const selectedDateMidnight = new Date(form.schedule);
+    selectedDateMidnight.setHours(0, 0, 0, 0);
+
+    const now = new Date();
+    const israelHour = getIsraelHour();
+
+    const israelNow = new Date(now.toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
+    israelNow.setHours(0, 0, 0, 0);
+
+    if (isBefore(selectedDateMidnight, israelNow)) {
+      setError("Cannot create a class in the past. Please pick today or a future date.");
+      return;
+    }
+
+    if (isSameDay(selectedDateMidnight, israelNow) && hourInt <= israelHour) {
+      setError(`Cannot create class for this hour or earlier. Current Israel hour is ${israelHour}:00.`);
+      return;
+    }
+
+    axios.put(`/trainer/class/${selectedClassId}`, {
+      classTypeId: form.classTypeId,
+      schedule: formatDateToISO(form.schedule),
+      time: form.time
+    }, { withCredentials: true })
       .then(() => {
-        alert("Class updated!");
+        setError("");
+        setSuccess("Class updated successfully!"); // Add success message
         fetchClasses();
       })
-      .catch((err) => {
+      .catch(err => {
         setError("Failed to update class: " + (err.response?.data?.error || err.message));
       });
   }
 
-  async function handleDelete() {
+  function handleDelete() {
     if (!selectedClassId) return;
-    if (!window.confirm("Are you sure you want to delete this class? This action cannot be undone.")) return;
     setError("");
-    await axios.delete(`/trainer/class/${selectedClassId}`, { withCredentials: true })
+    axios.delete(`/trainer/class/${selectedClassId}`, { withCredentials: true })
       .then(() => {
-        alert("Class deleted!");
         setSelectedClassId("");
+        setSuccess("Class deleted successfully!"); // Add success message
         fetchClasses();
       })
-      .catch((err) => {
+      .catch(err => {
         setError("Failed to delete class: " + (err.response?.data?.error || err.message));
       });
   }
@@ -152,15 +241,16 @@ export default function ModifyClassView({ user, setUser }) {
       <div className={styles.overlay} />
       <TrainerHeader trainer={user} setTrainer={setUser} onProfile={() => setShowProfile(true)} />
       <main className={styles.mainContent}>
-        <div className={styles.modifyClassContainer}>
-          <h2 className={styles.modifyClassHeader}>Modify Existing Class</h2>
-          {error && <div className={styles.errorMsg}>{error}</div>}
+        <div className={styles.formContainer}>
+          <h2 className={styles.addClassHeader}>Modify Existing Class</h2>
+         
           <div>
-            <label className={styles.formLabel}>Pick a Class:</label>
+            <label htmlFor="class">Pick a Class:</label>
             <select
-              className={styles.formInput}
+              id="class"
               value={selectedClassId}
               onChange={e => setSelectedClassId(e.target.value)}
+              className={styles.formInputWide}
             >
               <option value="">-- Select Class --</option>
               {classes.map(cls => (
@@ -171,14 +261,14 @@ export default function ModifyClassView({ user, setUser }) {
             </select>
           </div>
           {selectedClassId && (
-            <form className={styles.modifyClassForm} onSubmit={handleSubmit}>
+            <form className={styles.addClassForm} onSubmit={handleSubmit}>
               <div>
-                <label className={styles.formLabel}>Class Type:</label>
+                <label htmlFor="classTypeId">Class Type:</label>
                 <select
-                  className={`${styles.formInput} ${styles.formSelect}`}
-                  name="classTypeId"
+                  id="classTypeId"
                   value={form.classTypeId}
-                  onChange={handleChange}
+                  onChange={e => setForm({ ...form, classTypeId: e.target.value })}
+                  className={styles.formInputWide}
                 >
                   <option value="">-- Select Class Type --</option>
                   {classTypes.map(type => (
@@ -187,32 +277,59 @@ export default function ModifyClassView({ user, setUser }) {
                 </select>
               </div>
               <div>
-                <label className={styles.formLabel}>Class Date:</label>
-                <input
-                  className={styles.formInput}
-                  type="date"
-                  name="schedule"
-                  value={form.schedule}
-                  min={getTodayDateString()}
-                  onChange={handleChange}
-                />
+                <label htmlFor="date">Class Date:</label>
+                <div ref={dateInputRef} style={{ position: "relative" }}>
+                  <input
+                    id="date"
+                    type="text"
+                    className={`${styles.formInputWide} ${styles.dateInput}`}
+                    value={form.schedule ? formatDateDMY(form.schedule) : ""}
+                    readOnly
+                    placeholder="Select date (dd/mm/yyyy)"
+                    onClick={() => setShowCalendar(v => !v)}
+                  />
+                  {showCalendar && (
+                    <div className={styles.calendarPopover}>
+                      <DayPicker
+                        mode="single"
+                        selected={form.schedule}
+                        onSelect={selected => {
+                          setForm({ ...form, schedule: selected });
+                          setShowCalendar(false);
+                        }}
+                        fromDate={new Date()}
+                        showOutsideDays
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
               <div>
-                <label className={styles.formLabel}>Class Time:</label>
-                <input
-                  className={styles.formInput}
-                  type="time"
-                  name="time"
-                  value={formatTime(form.time)}
-                  onChange={handleChange}
-                />
+                <label htmlFor="hour">Class Hour (6:00 to 23:00):</label>
+                <select
+                  id="hour"
+                  value={form.time}
+                  onChange={e => setForm({ ...form, time: e.target.value })}
+                  className={styles.formInputWide}
+                  disabled={!form.schedule}
+                >
+                  <option value="">-- Select Hour --</option>
+                  {availableHours.length === 0 && form.schedule && (
+                    <option disabled>No available hours on this date</option>
+                  )}
+                  {availableHours.map(h => (
+                    <option key={h} value={h}>{h}</option>
+                  ))}
+                </select>
               </div>
-              <div className={styles.formBtnRow}>
-                <button type="submit" className={styles.updateBtn}>Update Class</button>
+              {error && <div className={styles.errorMsg}>{error}</div>}
+              {success && <div className={styles.successMsg}>{success}</div>}
+              <div>
+                <button type="submit" className={styles.submitBtn}>Update Class</button>
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className={styles.deleteBtn}
+                  className={styles.submitBtn}
                 >
                   Delete Class
                 </button>
@@ -222,21 +339,7 @@ export default function ModifyClassView({ user, setUser }) {
         </div>
       </main>
       <Footer />
-      <ProfileModal
-        show={showProfile}
-        onClose={() => setShowProfile(false)}
-        userData={user}
-        onUpdate={setUser}
-      />
+      <ProfileModal show={showProfile} onClose={() => setShowProfile(false)} userData={user} onUpdate={setUser} />
     </div>
   );
-}
-
-// Helper for today's date (browser local, not UTC)
-function getTodayDateString() {
-  const now = new Date();
-  const yyyy = now.getFullYear();
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const dd = String(now.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
 }

@@ -22,18 +22,25 @@ router.post("/classes", (req, res) => {
 
   let sql = `
   SELECT
-    c.ClassID,            
+    c.ClassID,
     ct.type AS ClassType,
     c.Schedule,
     c.time,
-    c.MaxParticipants,
+    ct.MaxParticipants,
     u.FirstName AS TrainerFirstName,
-    u.LastName AS TrainerLastName
+    u.LastName AS TrainerLastName,
+    IFNULL(b.bookedCount, 0) AS bookedCount
   FROM classes c
   JOIN class_types ct ON c.ClassType = ct.id
   JOIN users u ON c.TrainerID = u.UserID
+  LEFT JOIN (
+    SELECT ClassID, COUNT(*) AS bookedCount
+    FROM members_classes
+    GROUP BY ClassID
+  ) b ON c.ClassID = b.ClassID
   WHERE u.Role = 'trainer'
-`;
+  `;
+
   let params = [];
 
   if (classTypeName && date) {
@@ -57,6 +64,8 @@ router.post("/classes", (req, res) => {
 });
 
 
+
+
 router.get("/class-amount", (req, res) => {
   if (!req.session.user || !req.session.user.UserID) {
     return res.status(401).json({ error: "Unauthorized: Not logged in" });
@@ -73,6 +82,7 @@ router.get("/class-amount", (req, res) => {
     res.json({ classAmount: results[0].ClassAmount });
   });
 });
+
 
 
 router.post("/use-class", (req, res) => {
@@ -310,7 +320,6 @@ router.post("/cancel-booked-class", (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
   if (!classId) {
-    console.log("Missing classId in payload.");
     return res.status(400).json({ error: "Missing classId" });
   }
 

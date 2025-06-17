@@ -5,8 +5,7 @@ import MemberHeader from "../MemberView/MemberHeader";
 import ProfileModal from "../../components/ProfileModal";
 import Footer from "../../components/Footer";
 
-// --- Adjust this price if you want ---
-const CLASS_PRICE = 120; // <--- Set your class price (ILS)
+const CLASS_PRICE = 120;
 
 function toDisplayDate(isoDate) {
   if (!isoDate) return "";
@@ -37,11 +36,9 @@ export default function BookView({ user, setUser }) {
   const [membershipInfo, setMembershipInfo] = useState(null);
   const [showProfile, setShowProfile] = useState(false);
 
-  // NEW: Booked class IDs state and loading state
   const [bookedClassIds, setBookedClassIds] = useState([]);
   const [bookedLoading, setBookedLoading] = useState(true);
 
-  // Fetch booked class IDs FIRST
   useEffect(() => {
     setBookedLoading(true);
     axios.get("/member/my-booked-classes", { withCredentials: true })
@@ -91,10 +88,9 @@ export default function BookView({ user, setUser }) {
       .catch(() => setClassAmount(0));
   }, []);
 
-  // MAIN: Only fetch all classes AFTER bookedClassIds are loaded
   useEffect(() => {
     if (bookedLoading) {
-      setClasses([]); // Or don't render anything until loaded
+      setClasses([]);
       return;
     }
     setClasses([]);
@@ -108,23 +104,29 @@ export default function BookView({ user, setUser }) {
     axios.post("/member/classes", body, { withCredentials: true })
       .then(res => {
         let filteredClasses = res.data;
+
+        // Show only classes where MaxParticipants >= 1 and not full
+        filteredClasses = filteredClasses.filter(cls => {
+          if (cls.MaxParticipants < 1) return false;
+          return cls.bookedCount < cls.MaxParticipants;
+        });
+
         const endDate = membershipInfo?.EndDate;
         if (endDate) {
-          filteredClasses = res.data.filter(cls => {
+          filteredClasses = filteredClasses.filter(cls => {
             const classDate = typeof cls.Schedule === "string"
               ? cls.Schedule.slice(0, 10)
               : new Date(cls.Schedule).toISOString().slice(0, 10);
             return classDate <= endDate;
           });
         }
-        // Remove booked classes!
+
         filteredClasses = filteredClasses.filter(
           cls => !bookedClassIds.includes(String(cls.ClassID))
         );
         setClasses(filteredClasses);
       })
       .catch(() => setError("Failed to fetch classes."));
-    // eslint-disable-next-line
   }, [selectedType, selectedDate, membershipInfo, bookedClassIds, bookedLoading]);
 
   useEffect(() => {
@@ -135,7 +137,7 @@ export default function BookView({ user, setUser }) {
     window.paypal.Buttons({
       createOrder: async () => {
         const res = await axios.post("/api/paypal/create-order", {
-          amount: CLASS_PRICE // <--- Price sent to backend/PayPal
+          amount: CLASS_PRICE
         });
         return res.data.id;
       },
@@ -207,7 +209,6 @@ export default function BookView({ user, setUser }) {
             <strong>Your Class Credits: </strong> {classAmount}
           </p>
 
-          {/* Loader for bookedClassIds */}
           {bookedLoading ? (
             <div style={{ color: "#ccc", fontSize: "1.2rem", margin: "2rem auto" }}>
               Loading available classes...
@@ -226,7 +227,7 @@ export default function BookView({ user, setUser }) {
                   type="button"
                 >
                   <strong>Type:</strong> {cls.ClassType}<br />
-                  <strong>Date:</strong> {toDisplayDate(cls.Schedule)} at {cls.time}<br />
+                  <strong>Date:</strong> {toDisplayDate(cls.Schedule)} at {cls.time.slice(0, 5)}<br />
                   <strong>Trainer:</strong> {cls.TrainerFirstName} {cls.TrainerLastName}
                 </button>
               ))}
@@ -247,7 +248,6 @@ export default function BookView({ user, setUser }) {
               style={{ marginTop: "12px" }}
               key={selectedClassId || "none"}
             ></div>
-            {/* ---- SHOW PRICE HERE IF A CLASS IS SELECTED ---- */}
             {selectedClassId && (
               <div style={{ margin: "12px 0 0 0", color: "#6ea8ff", fontWeight: "bold", fontSize: "1.22rem" }}>
                 Price to pay: {CLASS_PRICE} ₪
