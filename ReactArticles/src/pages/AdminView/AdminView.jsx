@@ -1,4 +1,3 @@
-// src/pages/AdminView.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminHeader from "./AdminHeader";
@@ -60,9 +59,25 @@ export default function AdminView({ user, setUser }) {
   }, []);
 
   useEffect(() => {
-axios.get("http://localhost:8801/admin/dashboard-stats", { withCredentials: true })
-      .then(res => setStats(res.data))
-      .catch(() => setStats({ totalMembers: "-", totalTrainers: "-", totalClasses: "-", activeMemberships: "-" }));
+    axios.get("http://localhost:8801/admin/dashboard-stats", { withCredentials: true })
+      .then(res => {
+        console.log("Fetched stats:", res.data);  // Debugging line to check response
+        setStats({
+          totalMembers: res.data.members || "-",
+          totalTrainers: res.data.trainers || "-",
+          totalClasses: res.data.classes || "-",
+          activeMemberships: res.data.activeMemberships || "-"
+        });
+      })
+      .catch((err) => {
+        console.error("Error fetching stats", err); // Debugging line to track errors
+        setStats({
+          totalMembers: "-",
+          totalTrainers: "-",
+          totalClasses: "-",
+          activeMemberships: "-"
+        });
+      });
   }, []);
 
   // Fetch pending trainers on load

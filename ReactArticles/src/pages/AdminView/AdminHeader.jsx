@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { FaUserCircle } from "react-icons/fa";
 import styles from "./AdminHeader.module.css";
+import axios from "axios";
 
 export default function AdminHeader({ user, onProfile, setUser }) {
   const [dropdown, setDropdown] = useState(false);
@@ -14,6 +15,18 @@ export default function AdminHeader({ user, onProfile, setUser }) {
     return () => window.removeEventListener("mousedown", close);
   }, [dropdown]);
 
+  // LOGOUT handler
+  async function handleLogout() {
+    try {
+      await axios.post("/logout", {}, { withCredentials: true });
+      setUser({});
+      window.location = "/login";
+    } catch {
+      setUser({});
+      window.location = "/login";
+    }
+  }
+
   return (
     <header className={styles.header}>
       <div className={styles.leftSection}>
@@ -24,7 +37,7 @@ export default function AdminHeader({ user, onProfile, setUser }) {
         <nav className={styles.nav}>
           <NavLink className={styles.link} to="/admin">Home</NavLink>
           <NavLink className={styles.link} to="/admin/members">Members</NavLink>
-          <NavLink className={styles.link} to="/admin/classes">Classes</NavLink>
+          <NavLink className={styles.link} to="/admin/classes">Class Types Management</NavLink>
           <NavLink className={styles.link} to="/admin/reports">Reports</NavLink>
         </nav>
       </div>
@@ -49,12 +62,9 @@ export default function AdminHeader({ user, onProfile, setUser }) {
             </div>
             <div
               className={styles.dropLink}
-              onClick={async () => {
-                try {
-                  await fetch('/logout', { method: 'POST', credentials: 'include' });
-                } catch (e) {}
-                setUser && setUser(null);
-                window.location = "/login";
+              onClick={() => {
+                setDropdown(false);
+                handleLogout();
               }}
             >
               Logout

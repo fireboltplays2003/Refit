@@ -14,7 +14,7 @@ import RegisterTrainer from "../pages/RegisterTrainer/RegisterTrainer";
 import UserView from "../pages/UserView/UserView";
 import ReportsPage from "../pages/AdminView/ReportsPage";
 import MembersPage from "../pages/AdminView/MembersPage";
-import ClassesPage from "../pages/AdminView/ClassesPage";
+import ClassTypesManagement from "../pages/AdminView/ClassTypesManagement";
 import AddClassView from "../pages/TrainerView/AddClassView";
 import ModifyClassView from "../pages/TrainerView/ModifyClassView";
 import Classes from "../components/ClassesInformation/Classes";
@@ -41,7 +41,7 @@ function MyRoutes({ user, setUser }) {
       <Route path="/admin" element={<AdminView user={user} setUser={setUser} />} />
       <Route path="/admin/reports" element={<ReportsPage user={user} setUser={setUser} />} />
       <Route path="/admin/members" element={<MembersPage user={user} setUser={setUser} />} />
-      <Route path="/admin/classes" element={<ClassesPage user={user} setUser={setUser} />} />
+      <Route path="/admin/classes" element={<ClassTypesManagement user={user} setUser={setUser} />} />
       <Route path="/trainer/add-class" element={<AddClassView user={user} setUser={setUser} />} />
       <Route path="/trainer/modify-class" element={<ModifyClassView user={user} setUser={setUser} />} />
       <Route path="*" element={<NotFound />} />

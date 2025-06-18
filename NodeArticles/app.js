@@ -13,8 +13,6 @@ const port = 8801;
 const classesRoute = require("./routes/member");
 const userRoute = require("./routes/user");
 const profileRoute = require("./routes/profile");
-const cleanupRoute = require("./routes/cleanup");
-const { cleanupOutdatedClasses } = require("./routes/cleanup"); 
 require('./routes/renewalReminder'); 
 
 app.use(cors({
@@ -43,14 +41,6 @@ app.get('/whoami', (req, res) => {
     return res.status(200).json({ authenticated: false });
   }
   return res.json({ ...req.session.user, authenticated: true });
-});
-
-cleanupOutdatedClasses((err, removedCount) => {
-  if (err) {
-    console.error("[SERVER STARTUP] Cleanup error:", err);
-  } else {
-    console.log(`[SERVER STARTUP] Cleanup ran: ${removedCount} outdated classes removed.`);
-  }
 });
 
 // This line must be above your app.use('/', router) lines!

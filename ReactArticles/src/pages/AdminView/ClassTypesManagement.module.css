@@ -1,0 +1,163 @@
+/* Ensure the body takes the full height of the viewport */
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+/* Container for the entire page */
+.pageWrapper {
+  max-width: 1000px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background-color: #111; /* Keep the overall page background dark */
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); /* 3D effect */
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 100px); /* Ensures space for sticky footer */
+}
+
+/* Header styling */
+.header {
+  text-align: center;
+  font-size: 2rem;
+  color: #fff;
+  margin-bottom: 2rem;
+}
+
+/* Success/Error messages */
+.messageWrapper {
+  margin-bottom: 1.5rem;
+  display: flex;
+  justify-content: center;
+}
+
+.successMsg,
+.errorMsg {
+  padding: 1rem;
+  font-size: 1rem;
+  font-weight: bold;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+}
+
+.successMsg {
+  background-color: #4caf50;
+  color: white;
+}
+
+.errorMsg {
+  background-color: #f44336;
+  color: white;
+}
+
+/* Form section */
+.form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+/* Fields alignment */
+.inputWrapper {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 1rem;
+  width: 100%;
+}
+
+/* Input styling */
+.input {
+  width: 48%;
+  background-color: rgba(255, 255, 255, 0.1); /* Darker glassy look */
+  border-radius: 8px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1); /* Soft shadow for 3D effect */
+  color: white;
+  backdrop-filter: blur(5px); /* Glass effect */
+  border: 1px solid rgba(255, 255, 255, 0.3); /* Slight border for glass effect */
+}
+
+/* Submit button */
+.submitBtn {
+  margin-top: 1.5rem;
+  width: 100%;
+  background-color: #d32f2f;
+  color: white;
+  padding: 0.8rem;
+  font-weight: bold;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+.submitBtn:hover {
+  background-color: #c62828;
+}
+
+/* Table styling */
+.tableContainer {
+  margin-top: 2rem;
+  background-color: #1e1e1e; /* Darker background for the table */
+  border-radius: 10px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+}
+
+.tableHeader {
+  color: #d32f2f;
+  font-weight: bold;
+}
+
+.tableRow {
+  background-color: #333; /* Darker background for rows */
+}
+
+.tableCell {
+  color: white; /* White text color for better contrast */
+}
+
+/* Styling for the "Delete" buttons */
+.deleteBtn {
+  background-color: #f44336;
+  color: white;
+  width: 100px;  /* Make the button smaller */
+  &:hover {
+    background-color: #d32f2f;
+  }
+}
+
+/* Footer Styling */
+footer {
+  background-color: #212121;
+  color: #fff;
+  padding: 1rem;
+  text-align: center;
+  margin-top: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+}
+
+/* Background styling for the white spaces */
+body {
+  background-color: #222; /* Keep this as the background color for the page */
+}
+
+/* Schedule Section Styling */
+.scheduleSection {
+  background-color: #333; /* Updated to a nice dark gray */
+  color: #ff0000; /* Bright red text for contrast */
+  padding: 1.5rem;
+  border-radius: 10px;
+  margin-top: 2rem;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.3); /* Added shadow for better 3D effect */
+  backdrop-filter: blur(8px); /* Added blur effect for a glassy look */
+  border: 1px solid rgba(255, 255, 255, 0.2); /* Light border for subtle effect */
+}
+
+/* Table Cell Custom Styling */
+.MuiTableCell-root {
+  background-color: #2f2f2f; /* Slightly lighter dark color for table cells */
+  color: white;
+  border: 1px solid #444; /* Subtle border for cells */
+}
