@@ -14,14 +14,73 @@ const images = [
   "/img/membershipImage.png"
 ];
 
+function toDisplayDate(isoDate) {
+  if (!isoDate) return "";
+  try {
+    const date = new Date(isoDate);
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return "Invalid date";
+  }
+}
+
+function getUpcomingLabel(classDate, classTime) {
+  const now = new Date();
+  const todayY = now.getFullYear();
+  const todayM = now.getMonth();
+  const todayD = now.getDate();
+
+  const classDateTime = new Date(classDate + "T" + (classTime || "00:00"));
+  const classY = classDateTime.getFullYear();
+  const classM = classDateTime.getMonth();
+  const classD = classDateTime.getDate();
+
+  function getWeekNumber(d) {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+    var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+    return weekNo;
+  }
+  const nowWeek = getWeekNumber(now);
+  const classWeek = getWeekNumber(classDateTime);
+
+  if (todayY === classY && todayM === classM && todayD === classD) {
+    return "Today";
+  } else if (
+    classY === todayY &&
+    classWeek === nowWeek &&
+    classDateTime > now
+  ) {
+    return "This Week";
+  } else if (
+    (classY === todayY && classWeek === nowWeek + 1) ||
+    (classY === todayY + 1 && nowWeek === 52 && classWeek === 1)
+  ) {
+    return "Next Week";
+  }
+  return null;
+}
+
 export default function MemberView({ user, setUser }) {
   const navigate = useNavigate();
   const [authorized, setAuthorized] = useState(false);
   const [bgIndex, setBgIndex] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [classes, setClasses] = useState([]);
+  const [fetchingClasses, setFetchingClasses] = useState(true);
 
-  // User auth logic: null or missing role means "not logged in"
+  // MEMBERSHIP CARD
+  const [membership, setMembership] = useState(null);
+  const [membershipLoading, setMembershipLoading] = useState(true);
+
+  // CLASS ATTENDANCE
+  const [attendance, setAttendance] = useState(0);
+
   useEffect(() => {
     if (!user || !user.Role) {
       setAuthorized(false);
@@ -44,6 +103,45 @@ export default function MemberView({ user, setUser }) {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    if (!authorized) return;
+    setFetchingClasses(true);
+    fetch("/member/my-booked-classes", {
+      credentials: "include"
+    })
+      .then(res => res.json())
+      .then(data => {
+        setClasses(Array.isArray(data) ? data : []);
+        setAttendance(Array.isArray(data) ? data.filter(cls => {
+          // Only classes in the past
+          const classDateTime = new Date(cls.Schedule + "T" + (cls.time || "00:00"));
+          return classDateTime < new Date();
+        }).length : 0);
+        setFetchingClasses(false);
+      })
+      .catch(() => {
+        setClasses([]);
+        setAttendance(0);
+        setFetchingClasses(false);
+      });
+  }, [authorized]);
+
+  // MEMBERSHIP CARD: fetch membership info
+  useEffect(() => {
+    if (!authorized) return;
+    setMembershipLoading(true);
+    fetch("/member/my-membership", { credentials: "include" })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => {
+        setMembership(data || null);
+        setMembershipLoading(false);
+      })
+      .catch(() => {
+        setMembership(null);
+        setMembershipLoading(false);
+      });
+  }, [authorized]);
+
   if (loading) {
     return (
       <div className={styles.bgWrapper} style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh" }}>
@@ -52,47 +150,167 @@ export default function MemberView({ user, setUser }) {
     );
   }
 
-  // Redirect to login ONLY if not authorized
   if (!authorized) {
     navigate("/login");
     return null;
   }
 
-  return ( 
+  const now = new Date();
+  const upcomingClasses = [];
+  const pastClasses = [];
+  classes.forEach(cls => {
+    const classDateTime = new Date(cls.Schedule + "T" + (cls.time || "00:00"));
+    if (classDateTime >= now) {
+      upcomingClasses.push(cls);
+    } else {
+      pastClasses.push(cls);
+    }
+  });
+  upcomingClasses.sort((a, b) => new Date(a.Schedule + "T" + (a.time || "00:00")) - new Date(b.Schedule + "T" + (b.time || "00:00")));
+  pastClasses.sort((a, b) => new Date(b.Schedule + "T" + (b.time || "00:00")) - new Date(a.Schedule + "T" + (a.time || "00:00")));
+
+  // MEMBERSHIP CARD: calculate days left
+  let daysLeft = null;
+  if (membership && membership.StartDate && membership.EndDate) {
+    const end = new Date(membership.EndDate);
+    const today = new Date();
+    end.setHours(0,0,0,0); today.setHours(0,0,0,0);
+    daysLeft = Math.max(0, Math.round((end - today) / (1000 * 60 * 60 * 24)));
+  }
+
+  return (
     <>
-    <MemberHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
-    <div className={styles.bgWrapper}>
-      {images.map((img, idx) => (
-        <div
-          key={idx}
-          className={styles.bgImg}
-          style={{
-            backgroundImage: `url(${img})`,
-            opacity: bgIndex === idx ? 1 : 0,
-            zIndex: 1,
-            transition: "opacity 1.2s"
-          }}
+      <MemberHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
+      <div className={styles.bgWrapper}>
+        {images.map((img, idx) => (
+          <div
+            key={idx}
+            className={styles.bgImg}
+            style={{
+              backgroundImage: `url(${img})`,
+              opacity: bgIndex === idx ? 1 : 0,
+              zIndex: 1,
+              transition: "opacity 1.2s"
+            }}
+          />
+        ))}
+        <div className={styles.overlay} />
+        <main className={styles.mainContent}>
+
+          {/* --- TOP BAR ROW --- */}
+          <div className={styles.topBarRow}>
+            <div className={styles.welcomeContainerLeft}>
+              <h1 className={styles.welcomeTitleLeft}>
+                Welcome, <span className={styles.highlight}>{(user.FirstName || "") + " " + (user.LastName || "")}</span>
+              </h1>
+              <p className={styles.welcomeTextLeft}>
+                All your class info, bookings, and progress are right here.
+              </p>
+            </div>
+            <div className={styles.membershipCardTopRight}>
+              {membershipLoading ? (
+                <div className={styles.membershipCardLoading}>Loading membership info...</div>
+              ) : membership ? (
+                <div className={styles.membershipInfoGrid}>
+                  <div>
+                    <div className={styles.membershipLabel}>Membership Type</div>
+                    <div className={styles.membershipValue}>{membership.PlanName || membership.MemberShipType || "-"}</div>
+                  </div>
+                  <div>
+                    <div className={styles.membershipLabel}>Start Date</div>
+                    <div className={styles.membershipValue}>{toDisplayDate(membership.StartDate)}</div>
+                  </div>
+                  <div>
+                    <div className={styles.membershipLabel}>End Date</div>
+                    <div className={styles.membershipValue}>{toDisplayDate(membership.EndDate)}</div>
+                  </div>
+                  <div>
+                    <div className={styles.membershipLabel}>Days Left</div>
+                    <div className={styles.membershipValue}>{daysLeft !== null ? `${daysLeft} days` : "-"}</div>
+                  </div>
+                  <div>
+                    <div className={styles.membershipLabel}>Class Credits Left</div>
+                    <div className={styles.membershipValue}>{membership.ClassAmount !== undefined ? membership.ClassAmount : "-"}</div>
+                  </div>
+                  <div>
+                    <div className={styles.membershipLabel}>Class Attendance</div>
+                    <div className={styles.membershipValue}>{attendance}</div>
+                  </div>
+                </div>
+              ) : (
+                <div className={styles.membershipCardLoading} style={{color:"#ff6b6b"}}>No active membership</div>
+              )}
+            </div>
+          </div>
+
+          <div className={styles.classSectionContainer}>
+            <section className={styles.classesSection}>
+              <h2 className={styles.sectionTitle}>Upcoming Classes</h2>
+              {fetchingClasses ? (
+                <div className={styles.loadingMsg}>Loading classes...</div>
+              ) : upcomingClasses.length === 0 ? (
+                <div className={styles.noClassesMsg}>
+                  No upcoming classes
+                </div>
+              ) : (
+                <div className={styles.classListHorizontal}>
+                  {upcomingClasses.map(cls => (
+                    <div className={styles.classCard} key={cls.ClassID}>
+                      <div className={styles.classMainInfo}>
+                        <span className={styles.classType}>{cls.ClassType}</span>
+                        <span className={styles.classDateTime}>
+                          {toDisplayDate(cls.Schedule)} at {cls.time?.slice(0, 5)}
+                        </span>
+                      </div>
+                      <div className={styles.classTrainer}>
+                        Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
+                      </div>
+                      {(() => {
+                        const lbl = getUpcomingLabel(cls.Schedule, cls.time);
+                        if (!lbl) return null;
+                        return <span className={styles.upcomingLabel}>{lbl}</span>;
+                      })()}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+            <section className={styles.classesSection}>
+              <h2 className={styles.sectionTitle}>Class History</h2>
+              {fetchingClasses ? (
+                <div className={styles.loadingMsg}>Loading history...</div>
+              ) : pastClasses.length === 0 ? (
+                <div className={styles.noClassesMsg}>
+                  No class history yet
+                </div>
+              ) : (
+                <div className={styles.classListHorizontal}>
+                  {pastClasses.map(cls => (
+                    <div className={styles.classCard} key={cls.ClassID}>
+                      <div className={styles.classMainInfo}>
+                        <span className={styles.classType}>{cls.ClassType}</span>
+                        <span className={styles.classDateTime}>
+                          {toDisplayDate(cls.Schedule)} at {cls.time?.slice(0, 5)}
+                        </span>
+                      </div>
+                      <div className={styles.classTrainer}>
+                        Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+        </main>
+        <Footer />
+        <ProfileModal
+          show={showProfile}
+          onClose={() => setShowProfile(false)}
+          userData={user}
+          onUpdate={setUser}
         />
-      ))}
-      <div className={styles.overlay} />
-      <main className={styles.mainContent}>
-        <div className={styles.welcomeContainer}>
-          <h1 className={styles.welcomeTitle}>
-            Welcome Back, <span className={styles.highlight}>{(user.FirstName || "") + " " + (user.LastName || "")}</span>!
-          </h1>
-          <p className={styles.welcomeText}>
-            All your class info, bookings, and progress — right here in your Refit member area.
-          </p>
-        </div>
-      </main>
-      <Footer />
-      <ProfileModal
-        show={showProfile}
-        onClose={() => setShowProfile(false)}
-        userData={user}
-        onUpdate={setUser}
-      />
-    </div>
+      </div>
     </>
   );
 }

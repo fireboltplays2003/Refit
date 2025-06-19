@@ -272,3 +272,221 @@
   .popup { padding: 20px 6vw 18px 6vw; min-width: 0; }
 }
 
+.classList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 44vh;    /* Or whatever fits your design */
+  overflow-y: auto;    /* Only vertical scroll */
+  overflow-x: hidden;  /* Prevent horizontal scroll */
+  border-radius: 8px;
+
+  scrollbar-width: thin;
+  scrollbar-color: #3c405f #26263a;
+}
+
+.classItem {
+  /* This helps prevent flex/overflow bugs causing horizontal scroll */
+  min-width: 0;
+}
+.classRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  min-width: 0;  /* Prevents content overflow in flexbox */
+}
+
+.classDetails {
+  min-width: 0;  /* Prevents flex overflow */
+}
+.viewBtn {
+  padding: 6px 14px;            /* Smaller vertical/horizontal padding */
+  font-size: 1rem;              /* Slightly smaller font */
+  border: none;
+  border-radius: 18px;          /* Slightly less rounded */
+  background: #ea7266;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 12px #0003;
+  transition: background 0.13s;
+  white-space: nowrap;
+  margin-right: 6px;            /* Add space between button and scrollbar */
+}
+.viewBtn:hover {
+  background: #ff9080;
+}
+.classActions {
+  gap: 7px;       /* Reduce gap between count and button */
+  padding-right: 6px; /* Add right padding so button doesn't hug the edge */
+}
+.tabHeaderRow {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 1.2rem;
+  margin-bottom: 1.2rem;
+}
+.tabBtn {
+  padding: 0.55em 1.3em;
+  font-size: 1.09rem;
+  font-weight: 700;
+  background: transparent;
+  border: none;
+  border-radius: 8px 8px 0 0;
+  color: #ffe39c;
+  cursor: pointer;
+  outline: none;
+  transition: background 0.14s, color 0.14s;
+}
+.activeTab {
+  background: #23253b;
+  color: #ffcf67;
+  border-bottom: 3px solid #ffcf67;
+  box-shadow: 0 2px 8px #0002;
+}
+
+.filtersRow {
+  display: flex;
+  gap: 2.2rem;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 1.3rem;
+  margin-top: 1.2rem;
+  flex-wrap: wrap;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.filterLabel {
+  color: #fff;
+  font-size: 1.06rem;
+  font-weight: 500;
+  letter-spacing: 0.2px;
+}
+
+.filterDateInput,
+.filterTypeSelect {
+  padding: 0.36em 0.9em;
+  border-radius: 8px;
+  border: none;
+  font-size: 1.06rem;
+  background: #25283a;
+  color: #fff;
+  outline: none;
+  box-shadow: 0 2px 12px #0003;
+}
+
+.filterDateInput:focus,
+.filterTypeSelect:focus {
+  border: 1.5px solid #ffcf67;
+}
+
+.tabHeaderRow {
+  display: flex;
+  gap: 0.7rem;
+  margin-bottom: 0.6rem;
+  justify-content: flex-start; /* tabs to left inside card */
+}
+
+.tabBtn {
+  background: none;
+  border: none;
+  font-size: 1.13rem;
+  font-weight: 600;
+  color: #a7a9be;
+  padding: 0.36em 1.15em;
+  border-radius: 20px;
+  transition: background 0.18s, color 0.18s;
+  cursor: pointer;
+}
+
+.activeTab {
+  background: #ffcf67;
+  color: #23253b;
+}
+
+.mainContent {
+  padding-bottom: 3.2rem; /* Adds space above footer */
+}
+
+/* The card that wraps the tabs, title, list */
+.card {
+  margin-bottom: 2.8rem; /* Space below card before footer */
+}
+
+/* Center the tab buttons (My Classes, Class History) */
+.tabHeaderRow {
+  display: flex;
+  gap: 0.7rem;
+  margin-bottom: 0.6rem;
+  justify-content: center;   /* <-- CENTER! */
+  align-items: center;
+}
+
+.filtersRow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2.2rem;
+  margin-bottom: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.filterLabel {
+  font-size: 1.16rem;
+  font-weight: 600;
+  color: #fff;
+  min-width: 60px;
+}
+
+.filterDateInput,
+.filterTypeSelect {
+  width: 250px;
+  max-width: 270px;
+  padding: 1.1rem 1.2rem;
+  border-radius: 13px;
+  border: none;
+  background: #232436;
+  color: #69aaff;
+  font-size: 1.25rem;
+  font-weight: 500;
+  outline: none;
+  transition: border 0.17s;
+}
+
+.filterDateInput:focus,
+.filterTypeSelect:focus {
+  border: 2px solid #6ea7ff;
+}
+
+/* Responsive for mobile */
+@media (max-width: 700px) {
+  .filtersRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+  .filterGroup {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+  }
+  .filterDateInput,
+  .filterTypeSelect {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+  }
+}
