@@ -489,3 +489,16 @@
     max-width: 100%;
   }
 }
+.classCountBox {
+  margin-top: 12px;
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: #6ea8ff;        /* Accent blue for numbers /
+  background: #23253b;   / Slightly dark background */
+  padding: 7px 16px;
+  border-radius: 16px;
+  box-shadow: 0 1px 8px #0002;
+  display: inline-block;
+  letter-spacing: 0.3px;
+  text-align: center;
+}

@@ -18,7 +18,7 @@ export default function UserView({ user, setUser }) {
   const navigate = useNavigate();
   const [bgIndex, setBgIndex] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
-  
+
   useEffect(() => {
     if (!user || !user.Role) {
       navigate("/login");
@@ -26,7 +26,7 @@ export default function UserView({ user, setUser }) {
       navigate("/" + user.Role);
     }
   }, [user, navigate]);
-  
+
   useEffect(() => {
     const interval = setInterval(() => {
       setBgIndex(prev => (prev + 1) % images.length);
@@ -34,7 +34,8 @@ export default function UserView({ user, setUser }) {
     return () => clearInterval(interval);
   }, []);
 
- 
+  // *** Prevent render until user is valid ***
+  if (!user || !user.Role || user.Role !== "user") return null;
 
   return (
     <div className={styles.bgWrapper}>
@@ -55,7 +56,9 @@ export default function UserView({ user, setUser }) {
       <main className={styles.mainContent}>
         <div className={styles.welcomeContainer}>
           <h1 className={styles.welcomeTitle}>
-            Welcome Back, <span className={styles.highlight}>{(user.FirstName || "") + " " + (user.LastName || "")}</span>!
+            Welcome Back, <span className={styles.highlight}>
+              {user ? (user.FirstName || "") + " " + (user.LastName || "") : ""}
+            </span>!
           </h1>
           <p className={styles.welcomeText}>
             Your fitness journey continues. Explore your progress and discover new ways to achieve your goals.
@@ -72,3 +75,4 @@ export default function UserView({ user, setUser }) {
     </div>
   );
 }
+

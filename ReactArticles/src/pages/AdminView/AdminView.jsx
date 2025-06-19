@@ -1,23 +1,76 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminHeader from "./AdminHeader";
+import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
 import styles from "./AdminView.module.css";
 import axios from "axios";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+
 const images = [
   "/img/img1.jpg",
   "/img/img2.jpg",
   "/img/img3.jpg",
   "/img/img4.jpg",
   "/img/img5.jpg",
-  "/img/membershipImage.png"
+  "/img/membershipImage.png",
 ];
+
+function toDisplayDate(isoDate) {
+  if (!isoDate) return "";
+  try {
+    const date = new Date(isoDate);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return "Invalid date";
+  }
+}
+
+function getUpcomingLabel(classDate, classTime) {
+  const now = new Date();
+  const classDateTime = new Date(classDate + "T" + (classTime || "00:00"));
+  const daysDiff = Math.floor((classDateTime - now) / (1000 * 60 * 60 * 24));
+  function getWeekNumber(d) {
+    d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+  }
+  const nowWeek = getWeekNumber(now);
+  const classWeek = getWeekNumber(classDateTime);
+
+  if (
+    now.getFullYear() === classDateTime.getFullYear() &&
+    now.getMonth() === classDateTime.getMonth() &&
+    now.getDate() === classDateTime.getDate()
+  ) {
+    return "Today";
+  } else if (
+    classDateTime > now &&
+    classWeek === nowWeek &&
+    classDateTime.getFullYear() === now.getFullYear()
+  ) {
+    return "This Week";
+  } else if (
+    daysDiff > 0 && daysDiff <= 30
+  ) {
+    return "This Month";
+  }
+  return null;
+}
 
 export default function AdminView({ user, setUser }) {
   const navigate = useNavigate();
   const [bgIndex, setBgIndex] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
+  const [allClasses, setAllClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // NEW: Previous month
+  const [prevMonthClasses, setPrevMonthClasses] = useState([]);
+  const [loadingPrev, setLoadingPrev] = useState(true);
 
   useEffect(() => {
     if (!user || !user.Role) {
@@ -27,29 +80,6 @@ export default function AdminView({ user, setUser }) {
     }
   }, [user, navigate]);
 
-  // Dashboard stats
-  const [stats, setStats] = useState({
-    totalMembers: "-",
-    totalTrainers: "-",
-    totalClasses: "-",
-    activeMemberships: "-"
-  });
-
-  // Pending trainers
-  const [pending, setPending] = useState([]);
-  const [pendingLoading, setPendingLoading] = useState(false);
-  const [pendingStatus, setPendingStatus] = useState("");
-
-  // Chart data
-  const chartData = [
-    { name: "Members", value: Number(stats.totalMembers) || 0 },
-    { name: "Trainers", value: Number(stats.totalTrainers) || 0 },
-    { name: "Classes", value: Number(stats.totalClasses) || 0 },
-    { name: "Active Memberships", value: Number(stats.activeMemberships) || 0 }
-  ];
-
-
-
   useEffect(() => {
     const interval = setInterval(() => {
       setBgIndex(prev => (prev + 1) % images.length);
@@ -57,58 +87,49 @@ export default function AdminView({ user, setUser }) {
     return () => clearInterval(interval);
   }, []);
 
+  // Upcoming 30 days
   useEffect(() => {
-    axios.get("http://localhost:8801/admin/dashboard-stats", { withCredentials: true })
-      .then(res => {
-        console.log("Fetched stats:", res.data);  // Debugging line to check response
-        setStats({
-          totalMembers: res.data.members || "-",
-          totalTrainers: res.data.trainers || "-",
-          totalClasses: res.data.classes || "-",
-          activeMemberships: res.data.activeMemberships || "-"
+    setLoading(true);
+    axios
+      .get("/admin/all-upcoming-classes-with-count", { withCredentials: true })
+      .then((res) => {
+        const now = new Date();
+        const thirtyDaysLater = new Date(now);
+        thirtyDaysLater.setDate(now.getDate() + 30);
+
+        const filtered = (res.data || []).filter(cls => {
+          const classDateTime = new Date(cls.Schedule + "T" + (cls.time || "00:00"));
+          return classDateTime >= now && classDateTime <= thirtyDaysLater;
         });
+
+        // Sort by soonest
+        filtered.sort((a, b) =>
+          new Date(a.Schedule + "T" + (a.time || "00:00")) -
+          new Date(b.Schedule + "T" + (b.time || "00:00"))
+        );
+        setAllClasses(filtered);
+        setLoading(false);
       })
-      .catch((err) => {
-        console.error("Error fetching stats", err); // Debugging line to track errors
-        setStats({
-          totalMembers: "-",
-          totalTrainers: "-",
-          totalClasses: "-",
-          activeMemberships: "-"
-        });
+      .catch(() => {
+        setAllClasses([]);
+        setLoading(false);
       });
   }, []);
 
-  // Fetch pending trainers on load
+  // Previous month section
   useEffect(() => {
-    setPendingLoading(true);
-    axios.get("/admin/pending-trainers", { withCredentials: true })
-      .then(res => setPending(res.data))
-      .catch(() => setPending([]))
-      .finally(() => setPendingLoading(false));
-  }, [pendingStatus]);
-
-  function handleApprove(UserID) {
-    setPendingStatus("");
-    axios.post("/admin/approve-trainer", { UserID }, { withCredentials: true })
-      .then(() => {
-        setPendingStatus("Trainer approved!");
-        setPending(prev => prev.filter(t => t.UserID !== UserID));
+    setLoadingPrev(true);
+    axios
+      .get("/admin/all-previous-30days-classes-with-count", { withCredentials: true })
+      .then((res) => {
+        setPrevMonthClasses(res.data || []);
+        setLoadingPrev(false);
       })
-      .catch(() => setPendingStatus("Error approving trainer."));
-  }
-
-  function handleReject(UserID) {
-    setPendingStatus("");
-    axios.post("/admin/reject-trainer", { UserID }, { withCredentials: true })
-      .then(() => {
-        setPendingStatus("Trainer rejected.");
-        setPending(prev => prev.filter(t => t.UserID !== UserID));
-      })
-      .catch(() => setPendingStatus("Error rejecting trainer."));
-  }
-
- 
+      .catch(() => {
+        setPrevMonthClasses([]);
+        setLoadingPrev(false);
+      });
+  }, []);
 
   return (
     <div className={styles.bgWrapper}>
@@ -127,76 +148,88 @@ export default function AdminView({ user, setUser }) {
       <div className={styles.overlay} />
       <AdminHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
       <main className={styles.mainContent}>
-        {/* Stats */}
-        <div className={styles.statsRow}>
-          <div className={styles.statCard}><div>Total Members</div><div>{stats.totalMembers}</div></div>
-          <div className={styles.statCard}><div>Total Trainers</div><div>{stats.totalTrainers}</div></div>
-          <div className={styles.statCard}><div>Total Classes</div><div>{stats.totalClasses}</div></div>
-          <div className={styles.statCard}><div>Active Memberships</div><div>{stats.activeMemberships}</div></div>
-        </div>
-
-        {/* Chart */}
-        <div className={styles.platformOverview}>
-          <div className={styles.platformOverviewHeader}>Platform Overview</div>
-          <div className={styles.chartWrapper}>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={chartData}>
-                <XAxis dataKey="name" />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="value" fill="#5efcb1" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {/* Pending Trainers Section */}
-        <div className={styles.pendingSection}>
-          <div className={styles.pendingHeaderSection}>
-            <span>Pending Trainer Approvals</span>
-            {pendingStatus && (
-              <span className={styles.pendingStatus}>{pendingStatus}</span>
+        {/* Upcoming 30 days */}
+        <div className={styles.classSectionContainer}>
+          <section className={styles.classesSection}>
+            <h2 className={styles.sectionTitle}>Upcoming Classes (Next 30 Days)</h2>
+            <div className={styles.sectionDivider} />
+            {loading ? (
+              <div className={styles.loadingMsg}>Loading classes...</div>
+            ) : allClasses.length === 0 ? (
+              <div className={styles.noClassesMsg}>
+                No classes scheduled in the next 30 days.
+              </div>
+            ) : (
+              <div className={styles.classListHorizontal}>
+                {allClasses.map(cls => (
+                  <div className={styles.classCard} key={cls.ClassID}>
+                    <div className={styles.classMainInfo}>
+                      <span className={styles.classType}>
+                        {cls.ClassTypeName || cls.ClassType || "Class"}
+                      </span>
+                      <span className={styles.classDateTime}>
+                        {toDisplayDate(cls.Schedule)} at {cls.time?.slice(0, 5)}
+                      </span>
+                    </div>
+                    <div className={styles.classTrainer}>
+                      Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
+                    </div>
+                    <div className={styles.bookedCountRow}>
+                      <span className={styles.bookedCountNum}>
+                        {cls.bookedCount}/{cls.MaxParticipants} booked
+                      </span>
+                    </div>
+                    {(() => {
+                      const lbl = getUpcomingLabel(cls.Schedule, cls.time);
+                      if (!lbl) return null;
+                      return <span className={styles.upcomingLabel}>{lbl}</span>;
+                    })()}
+                  </div>
+                ))}
+              </div>
             )}
-          </div>
-          {pendingLoading ? (
-            <div className={styles.emptyStateAdmin}>Loading...</div>
-          ) : pending.length === 0 ? (
-            <div className={styles.emptyStateAdmin}>No pending trainers.</div>
-          ) : (
-            <div className={styles.pendingTrainersGrid}>
-              {pending.map(trainer => (
-                <div className={styles.trainerCardAdmin} key={trainer.UserID}>
-                  <div className={styles.trainerNameAdmin}>⏳ {trainer.FirstName} {trainer.LastName}</div>
-                  <div className={styles.trainerDetailAdmin}><b>Email:</b> {trainer.Email}</div>
-                  <div className={styles.trainerDetailAdmin}><b>Phone:</b> {trainer.Phone}</div>
-                  <div className={styles.trainerDetailAdmin}><b>Date of Birth:</b> {trainer.DateOfBirth?.slice(0,10)}</div>
-                  <div className={styles.trainerDetailAdmin}>
-                    <b>Certification:</b>{" "}
-                    {trainer.Certifications
-                      ? (
-                        <a
-                          href={`http://localhost:8801/uploads/${trainer.Certifications}`}
-                          className={styles.certLinkAdmin}
-                          download={trainer.Certifications}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          View Document
-                        </a>
-                      )
-                      : <span style={{ color: "#f36" }}>No document</span>
-                    }
+          </section>
+        </div>
+        {/* Previous month */}
+        <div className={styles.classSectionContainer}>
+          <section className={styles.classesSection}>
+            <h2 className={styles.sectionTitle}>Previous Month's Classes</h2>
+            <div className={styles.sectionDivider} />
+            {loadingPrev ? (
+              <div className={styles.loadingMsg}>Loading classes...</div>
+            ) : prevMonthClasses.length === 0 ? (
+              <div className={styles.noClassesMsg}>
+                No classes found for previous month.
+              </div>
+            ) : (
+              <div className={styles.classListHorizontal}>
+                {prevMonthClasses.map(cls => (
+                  <div className={styles.classCard} key={cls.ClassID}>
+                    <div className={styles.classMainInfo}>
+                      <span className={styles.classType}>
+                        {cls.ClassTypeName || cls.ClassType || "Class"}
+                      </span>
+                      <span className={styles.classDateTime}>
+                        {toDisplayDate(cls.Schedule)} at {cls.time?.slice(0, 5)}
+                      </span>
+                    </div>
+                    <div className={styles.classTrainer}>
+                      Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
+                    </div>
+                    <div className={styles.bookedCountRow}>
+                      <span className={styles.bookedCountNum}>
+                        {cls.bookedCount}/{cls.MaxParticipants} booked
+                      </span>
+                    </div>
+                    {/* Optionally: do NOT show the 'This Week/Month' label here */}
                   </div>
-                  <div className={styles.trainerActionsAdmin}>
-                    <button className={styles.buttonApprove} onClick={() => handleApprove(trainer.UserID)}>Approve</button>
-                    <button className={styles.buttonReject} onClick={() => handleReject(trainer.UserID)}>Reject</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
+          </section>
         </div>
       </main>
+      <Footer />
       <ProfileModal
         show={showProfile}
         onClose={() => setShowProfile(false)}

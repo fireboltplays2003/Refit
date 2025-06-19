@@ -42,6 +42,43 @@ router.get("/all-upcoming-classes", (req, res) => {
     res.json(results);
   });
 });
+router.get("/all-upcoming-classes-with-count", (req, res) => {
+  const user = req.session.user;
+  if (!user || user.Role !== "trainer") {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  // DO NOT filter on TrainerID here!
+  const sql = `
+    SELECT
+      c.ClassID,
+      c.Schedule,
+      c.time,
+      c.TrainerID,
+      u.FirstName AS TrainerFirstName,
+      u.LastName AS TrainerLastName,
+      ct.type AS ClassTypeName,
+      c.ClassType,
+      ct.MaxParticipants,
+      IFNULL(b.bookedCount, 0) AS bookedCount
+    FROM classes c
+    JOIN users u ON c.TrainerID = u.UserID
+    JOIN class_types ct ON c.ClassType = ct.id
+    LEFT JOIN (
+      SELECT ClassID, COUNT(*) AS bookedCount
+      FROM members_classes
+      GROUP BY ClassID
+    ) b ON c.ClassID = b.ClassID
+    WHERE c.Schedule >= CURDATE()
+    ORDER BY c.Schedule ASC, c.time ASC
+  `;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error fetching all upcoming classes:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    res.json(results);
+  });
+});
 // Get all class types for dropdowns
 router.get("/class-types", (req, res) => {
   const user = req.session.user;

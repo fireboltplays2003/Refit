@@ -88,6 +88,7 @@ export default function BookView({ user, setUser }) {
       .catch(() => setClassAmount(0));
   }, []);
 
+  // === FILTERS PAST CLASSES (fix) ===
   useEffect(() => {
     if (bookedLoading) {
       setClasses([]);
@@ -105,12 +106,20 @@ export default function BookView({ user, setUser }) {
       .then(res => {
         let filteredClasses = res.data;
 
-        // Show only classes where MaxParticipants >= 1 and not full
+        // Only classes with spots left
         filteredClasses = filteredClasses.filter(cls => {
           if (cls.MaxParticipants < 1) return false;
           return cls.bookedCount < cls.MaxParticipants;
         });
 
+        // FILTER OUT CLASSES IN THE PAST (BY DATE + TIME)
+        const now = new Date();
+        filteredClasses = filteredClasses.filter(cls => {
+          const classDateTime = new Date(`${cls.Schedule}T${cls.time || "00:00"}`);
+          return classDateTime >= now;
+        });
+
+        // Don't show classes after membership end date
         const endDate = membershipInfo?.EndDate;
         if (endDate) {
           filteredClasses = filteredClasses.filter(cls => {
@@ -121,6 +130,7 @@ export default function BookView({ user, setUser }) {
           });
         }
 
+        // Don't show classes already booked
         filteredClasses = filteredClasses.filter(
           cls => !bookedClassIds.includes(String(cls.ClassID))
         );

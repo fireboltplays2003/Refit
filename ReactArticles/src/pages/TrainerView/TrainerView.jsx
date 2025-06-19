@@ -15,7 +15,6 @@ const images = [
   "/img/membershipImage.png"
 ];
 
-// For "Upcoming Classes (Next 3 Days)" section
 function toDateStringISO(date) {
   return date.toISOString().slice(0, 10);
 }
@@ -31,7 +30,6 @@ function formatDateTime(isoDate, time) {
   return `${day}/${month}/${year} ${hour}:${min}`;
 }
 
-// MemberView date format
 function toDisplayDate(isoDate) {
   if (!isoDate) return "";
   try {
@@ -45,7 +43,6 @@ function toDisplayDate(isoDate) {
   }
 }
 
-// Returns "Today", "This Week", "Next Week", or null
 function getUpcomingLabel(classDate, classTime) {
   const now = new Date();
   const todayY = now.getFullYear();
@@ -163,12 +160,12 @@ export default function TrainerView({ user, setUser }) {
       });
   }, [user]);
 
-  // Fetch "All Upcoming Classes" in system
+  // Fetch "All Upcoming Classes" in system WITH COUNT
   useEffect(() => {
     if (!user || !user.UserID) return;
     setFetchingAll(true);
     axios
-      .get("/trainer/all-upcoming-classes", { withCredentials: true })
+      .get("/trainer/all-upcoming-classes-with-count", { withCredentials: true })
       .then((res) => {
         // Only classes in the future or today
         const now = new Date();
@@ -274,6 +271,18 @@ export default function TrainerView({ user, setUser }) {
                     </div>
                     <div className={styles.classTrainer}>
                       Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
+                    </div>
+                    <div className={styles.classCountBox}>
+                      {/* Strict mapping! Show booked/max or fallback "?" */}
+                      {(typeof cls.bookedCount !== "undefined" && typeof cls.MaxParticipants !== "undefined")
+                        ? (
+                          <span>
+                            {cls.bookedCount}/{cls.MaxParticipants > 0 ? cls.MaxParticipants : "?"} booked
+                          </span>
+                        ) : (
+                          <span>?</span>
+                        )
+                      }
                     </div>
                     {(() => {
                       const lbl = getUpcomingLabel(cls.Schedule, cls.time);

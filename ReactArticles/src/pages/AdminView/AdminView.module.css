@@ -1,321 +1,230 @@
 .bgWrapper {
-    position: relative;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-  }
-  .bgImg {
-    position: absolute;
-    inset: 0;
-    background-size: cover;
-    background-position: center;
-    filter: grayscale(0.2) brightness(0.18);
-    transition: opacity 1.2s;
-    z-index: 0;
-  }
-  .overlay {
-    position: absolute;
-    inset: 0;
-    background: rgba(17, 18, 19, 0.85);
-    z-index: 2;
-  }
-  .mainContent {
-    position: relative;
-    z-index: 3;
-    width: 100%;
-    padding: 2rem 0 8rem 0;
-    min-height: 82vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-  .statsRow {
-    width: 100%;
-    max-width: 1100px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 2rem;
-    margin-bottom: 2rem;
-    margin-top: 2.5rem;
-  }
-  .statCard {
-    background: #22262b;
-    border-radius: 1rem;
-    padding: 1.5rem;
-    box-shadow: 0 2px 14px rgba(20,20,40,0.19);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    color: #e9fbe7;
-    font-size: 1.1rem;
-    font-weight: 600;
-  }
-  .statCard > div:last-child {
-    font-size: 2.1rem;
-    font-weight: bold;
-    margin-top: 0.7rem;
-    color: #74ffd2;
-    letter-spacing: 2px;
-  }
-  
-  .platformOverview {
-    width: 100%;
-    max-width: 700px;
-    background: #22262b;
-    border-radius: 1rem;
-    margin: 2rem 0 0 0;
-    padding: 1.4rem 2.2rem 2.4rem 2.2rem;
-    color: #fff;
-    box-shadow: 0 1px 8px rgba(24,24,36,0.19);
-  }
-  .platformOverview h2 {
-    margin: 0 0 1rem 0;
-    font-weight: 600;
-    font-size: 1.3rem;
-  }
-  .chartWrapper {
-    width: 100%;
-    height: 230px;
-    background: #23282e;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1.3px dashed #bbb;
-    margin-top: 0.6rem;
-  }
-  
-  /* Pending Trainers Panel (slide in) */
-  .openPendingBtn {
-    margin-top: 2.5rem;
-    padding: 0.9rem 2.4rem;
-    background: linear-gradient(90deg, #53ffd4 0%, #a5fff5 100%);
-    color: #07352b;
-    font-size: 1.14rem;
-    font-weight: 700;
-    border-radius: 1.8rem;
-    border: none;
-    cursor: pointer;
-    box-shadow: 0 3px 14px rgba(50,255,221,0.09);
-    transition: transform 0.1s;
-  }
-  .openPendingBtn:hover {
-    transform: scale(1.04);
-    background: linear-gradient(90deg, #29ffd6 0%, #72e5ee 100%);
-  }
-  
-  /* Sliding Panel */
-  .pendingSlider {
-    position: fixed;
-    top: 0;
-    right: -480px;
-    width: 450px;
-    height: 100vh;
-    background: #202428;
-    color: #fff;
-    z-index: 99;
-    box-shadow: -4px 0 22px #0008;
-    transition: right 0.45s cubic-bezier(0.6, 0.09, 0.42, 0.91);
-    overflow-y: auto;
-    padding: 2rem 1.1rem 3rem 1.1rem;
-    border-left: 2.3px solid #35ffe4;
-    display: flex;
-    flex-direction: column;
-    min-width: 330px;
-    max-width: 92vw;
-  }
-  .pendingSliderOpen {
-    right: 0;
-  }
-  .pendingHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 1.24rem;
-    font-weight: 600;
-    border-bottom: 1px solid #333;
-    padding-bottom: 1rem;
-    margin-bottom: 2.2rem;
-  }
-  .closeBtn {
-    background: transparent;
-    border: none;
-    color: #f56;
-    font-size: 2rem;
-    cursor: pointer;
-    font-weight: 800;
-    line-height: 1;
-  }
-  .pendingTrainersGrid {
-    display: flex;
-    flex-direction: column;
-    gap: 1.6rem;
-  }
-  .trainerCardAdmin {
-    background: #292d34;
-    border-radius: 1rem;
-    box-shadow: 0 2px 14px rgba(20,20,40,0.10);
-    padding: 1.3rem 1.1rem 1.2rem 1.1rem;
-    margin-bottom: 0.9rem;
-  }
-  .trainerNameAdmin {
-    font-weight: 700;
-    font-size: 1.13rem;
-    color: #6afdc1;
-    margin-bottom: 0.6rem;
-  }
-  .trainerDetailAdmin {
-    font-size: 0.99rem;
-    color: #fff;
-    margin-bottom: 0.26rem;
-  }
-  .certLinkAdmin {
-    color: #53ffe0;
-    text-decoration: underline;
-    font-weight: 700;
-  }
-  .trainerActionsAdmin {
-    margin-top: 0.95rem;
-    display: flex;
-    gap: 1rem;
-  }
-  .buttonApprove,
-  .buttonReject {
-    font-size: 1rem;
-    border: none;
-    border-radius: 7px;
-    padding: 0.6rem 1.2rem;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .buttonApprove {
-    background: #49ffc1;
-    color: #043d25;
-  }
-  .buttonReject {
-    background: #ff7373;
-    color: #fff;
-  }
-  .emptyStateAdmin {
-    margin: 2.5rem 0 0 0;
-    text-align: center;
-    color: #e9e9e9;
-    font-size: 1.12rem;
-    font-weight: 500;
-  }
-  .pendingStatus {
-    margin-top: 1.2rem;
-    color: #47fdb2;
-    font-size: 1.13rem;
-    font-weight: bold;
-    text-align: center;
-  }
-  
+  position: relative;
+  min-height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  background: #101117;
+  overflow-x: hidden;
+}
 
- 
-  /* Only sections you need to ADD or edit for new design: */
+.bgImg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  filter: brightness(0.6) contrast(1.1);
+  transition: opacity 1.2s;
+  opacity: 0;
+  z-index: 1;
+}
 
-.pendingSection {
-    width: 100%;
-    max-width: 1100px;
-    margin: 3.6rem auto 2rem auto;
-    background: #21262c;
-    border-radius: 1.2rem;
-    box-shadow: 0 2px 18px rgba(20,20,40,0.13);
-    padding: 1.4rem 2.1rem 2.5rem 2.1rem;
-    min-height: 120px;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-  }
-  
-  .pendingHeaderSection {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 1.24rem;
-    font-weight: 700;
-    border-bottom: 1px solid #ffffff;
-    padding-bottom: 1rem;
-    margin-bottom: 2.1rem;
-    color: #fff
-  }
-  
-  .pendingTrainersGrid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
-  }
-  
-  .trainerCardAdmin {
-    background: #292d34;
-    border-radius: 1rem;
-    box-shadow: 0 2px 14px rgba(20,20,40,0.10);
-    padding: 1.3rem 1.1rem 1.2rem 1.1rem;
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .trainerNameAdmin {
-    font-weight: 700;
-    font-size: 1.13rem;
-    color: #6afdc1;
-    margin-bottom: 0.6rem;
-  }
-  .trainerDetailAdmin {
-    font-size: 0.99rem;
-    color: #fff;
-    margin-bottom: 0.26rem;
-  }
-  .certLinkAdmin {
-    color: #53ffe0;
-    text-decoration: underline;
-    font-weight: 700;
-  }
-  .trainerActionsAdmin {
-    margin-top: 0.95rem;
-    display: flex;
-    gap: 1rem;
-  }
-  .buttonApprove,
-  .buttonReject {
-    font-size: 1rem;
-    border: none;
-    border-radius: 7px;
-    padding: 0.6rem 1.2rem;
-    font-weight: 600;
-    cursor: pointer;
-  }
-  .buttonApprove {
-    background: #49ffc1;
-    color: #043d25;
-  }
-  .buttonReject {
-    background: #ff7373;
-    color: #fff;
-  }
- 
-  .pendingStatus {
-    margin-left: 1.8rem;
-    color: #47fdb2;
-    font-size: 1.12rem;
-    font-weight: 700;
-  }
- 
-  .platformOverviewHeader {
-    color: #49aaff;
-    font-size: 1.3rem;
-    font-weight: 700;
-    margin-bottom: 0.7rem;
-    text-align: center;
-    letter-spacing: 1px;
-    border-bottom: 2px solid #3ca5e7;
-    width: 56%;
-    min-width: 200px;
-    margin-left: auto;
-    margin-right: auto;
-    padding-bottom: 0.35rem;
-  }
-  
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 2;
+}
 
-  
+.mainContent {
+  position: relative;
+  z-index: 3;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 82vh;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 4.4rem 1.5rem 1rem 1.5rem;
+  box-sizing: border-box;
+}
+
+.classSectionContainer {
+  width: 100%;
+  max-width: 1050px;
+  margin: 2.5rem auto 2.5rem auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  z-index: 4;
+}
+
+.classesSection {
+  background: rgba(34, 36, 50, 0.92);
+  border-radius: 24px;
+  box-shadow: 0 2px 14px #0007;
+  padding: 1.8rem 1.4rem 1.7rem 1.4rem;
+  width: 100%;
+  min-width: 0;
+}
+
+.sectionTitle {
+  font-size: 1.7rem;
+  font-weight: bold;
+  margin-bottom: 1.1rem;
+  color: #ffcf67;
+  text-align: left;
+  letter-spacing: 0.3px;
+}
+
+/* Optional: single blue divider, uncomment if needed
+.sectionDivider {
+  width: 130px;
+  height: 4px;
+  background: #5bbaff;
+  border-radius: 2px;
+  margin: 0 auto 18px auto;
+}
+*/
+
+.classListHorizontal {
+  display: flex;
+  flex-direction: row;
+  gap: 1.05rem;
+  overflow-x: auto;
+  padding-bottom: 0.7rem;
+  scrollbar-width: thin;
+  scrollbar-color: #ffcf67 #23253b;
+}
+.classListHorizontal::-webkit-scrollbar {
+  height: 6px;
+  background: #23253b;
+  border-radius: 6px;
+}
+.classListHorizontal::-webkit-scrollbar-thumb {
+  background: #ffcf67;
+  border-radius: 6px;
+}
+
+.classCard {
+  background: #23263a;
+  border-radius: 18px;
+  min-width: 245px;
+  max-width: 300px;
+  padding: 1.15rem 1rem 0.85rem 1rem;
+  box-shadow: 0 1px 10px #0005;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  position: relative;
+  transition: box-shadow 0.2s;
+  margin-bottom: 0.8rem;
+}
+.classCard:hover {
+  box-shadow: 0 2px 18px #0007;
+}
+
+.classMainInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.classType {
+  font-weight: bold;
+  color: #ff8c8c;
+  font-size: 1.22rem;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.04em;
+  text-transform: lowercase;
+}
+
+.classDateTime {
+  color: #fff;
+  font-size: 1.09rem;
+  font-weight: 700;
+  margin-bottom: 0.06em;
+}
+
+.classTrainer {
+  color: #aee3fd;
+  font-size: 1.01rem;
+  font-weight: 400;
+  margin-bottom: 0.85rem;
+}
+
+/* Booked Count Row - compact, blue */
+.bookedCountRow {
+  margin: 0.01rem 0 0.85rem 0;
+  background: #232848;
+  border-radius: 0.85rem;
+  padding: 0.18rem 0 0.18rem 0;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bookedCountNum {
+  color: #ebedf6;
+  font-size: 1.13rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  border-radius: 6px;
+  padding: 0.10em 0.75em;
+  margin: 0 auto;
+}
+
+.upcomingLabel {
+  display: inline-block;
+  margin-top: 0.48rem;
+  background: #ffe08e;
+  color: #23253b;
+  font-weight: 700;
+  border-radius: 9px;
+  padding: 0.17em 0.8em;
+  font-size: 1.11rem;
+  box-shadow: 0 1px 5px #ffcf6732;
+  letter-spacing: 0.21px;
+}
+
+.noClassesMsg, .loadingMsg {
+  color: #fff;
+  font-size: 1.15rem;
+  opacity: 0.87;
+  margin: 1.3rem 0 1.3rem 0;
+  text-align: center;
+  font-weight: 500;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .classSectionContainer {
+    max-width: 100%;
+    padding: 0 0.2rem;
+  }
+  .classCard {
+    min-width: 170px;
+    max-width: 97vw;
+    font-size: 1.01rem;
+  }
+  .sectionTitle {
+    font-size: 1.2rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .classesSection {
+    padding: 0.85rem 0.18rem 1rem 0.18rem;
+  }
+  .classCard {
+    min-width: 110px;
+    font-size: 0.97rem;
+    padding: 0.7rem 0.35rem 0.65rem 0.35rem;
+  }
+  .sectionTitle {
+    font-size: 0.97rem;
+  }
+}
