@@ -16,20 +16,17 @@ const images = [
 
 export default function UserView({ user, setUser }) {
   const navigate = useNavigate();
-  const [authorized, setAuthorized] = useState(false);
   const [bgIndex, setBgIndex] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
-
-  // Redirect if not user
+  
   useEffect(() => {
-    if (!user || !user.Role) return;
-    if (user.Role !== "user") {
+    if (!user || !user.Role) {
+      navigate("/login");
+    } else if (user.Role !== "user") {
       navigate("/" + user.Role);
-    } else {
-      setAuthorized(true);
     }
   }, [user, navigate]);
-
+  
   useEffect(() => {
     const interval = setInterval(() => {
       setBgIndex(prev => (prev + 1) % images.length);
@@ -37,7 +34,7 @@ export default function UserView({ user, setUser }) {
     return () => clearInterval(interval);
   }, []);
 
-  if (!authorized) return null;
+ 
 
   return (
     <div className={styles.bgWrapper}>

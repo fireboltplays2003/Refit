@@ -4,6 +4,7 @@ import axios from "axios";
 import MemberHeader from "./MemberHeader";
 import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
+import { useNavigate } from "react-router-dom";
 
 const images = [
   "/img/img1.jpg",
@@ -14,22 +15,43 @@ const images = [
   "/img/membershipImage.png"
 ];
 
-function formatDateTime(iso, time) {
-  if (!iso) return "";
-  const date = new Date(iso);
-  return date.toLocaleDateString("en-GB") + (time ? " at " + time : "");
+function formatDateTime(isoDate, time) {
+  if (!isoDate) return "";
+  const d = new Date(isoDate);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  let hour = "00", min = "00";
+  if (time && time.length >= 5) [hour, min] = time.split(":");
+  return `${day}/${month}/${year} ${hour}:${min}`;
 }
 
 export default function MyBookedClasses({ user, setUser }) {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
-  const [confirmCancelId, setConfirmCancelId] = useState(null);
   const [msg, setMsg] = useState("");
   const [showProfile, setShowProfile] = useState(false);
   const [bgIndex, setBgIndex] = useState(0);
+  const [confirmCancelId, setConfirmCancelId] = useState(null);
   const [cancelling, setCancelling] = useState(null);
+  const [activeTab, setActiveTab] = useState("upcoming");
+  const [classTypes, setClassTypes] = useState([]);
+  const [filterDate, setFilterDate] = useState("");
+  const [filterType, setFilterType] = useState("");
+  const navigate = useNavigate();
 
+  useEffect(() => {
+    if (!user || !user.Role) {
+      navigate("/login");
+    } else if (user.Role !== "member") {
+      navigate("/" + user.Role);
+    }
+  }, [user, navigate]);
+
+
+
+  // Fetch classes and types
   useEffect(() => {
     setLoading(true);
     axios.get("/member/my-booked-classes", { withCredentials: true })
@@ -39,6 +61,9 @@ export default function MyBookedClasses({ user, setUser }) {
       })
       .catch(() => setErr("Failed to load your classes."))
       .finally(() => setLoading(false));
+    axios.get("/member/class-types", { withCredentials: true })
+      .then(res => setClassTypes(res.data || []))
+      .catch(() => setClassTypes([]));
   }, []);
 
   useEffect(() => {
@@ -68,13 +93,35 @@ export default function MyBookedClasses({ user, setUser }) {
     setConfirmCancelId(null);
   }
 
+  // Filter/split classes by upcoming/history
+  const now = new Date();
+
+  const upcomingClasses = [...classes]
+    .filter(cls => new Date(`${cls.Schedule}T${cls.time || "00:00"}`) >= now);
+  const historyClasses = [...classes]
+    .filter(cls => new Date(`${cls.Schedule}T${cls.time || "00:00"}`) < now);
+
+  // Apply filter logic (date/type)
+  function filterList(list) {
+    return list.filter(cls => {
+      let match = true;
+      if (filterDate) match = match && cls.Schedule === filterDate;
+      // --- Fix here: compare by string name, not ID ---
+      if (filterType) match = match && String(cls.ClassType) === String(filterType);
+      return match;
+    }).sort((a, b) => {
+      const aDate = new Date(`${a.Schedule}T${a.time || "00:00"}`);
+      const bDate = new Date(`${b.Schedule}T${b.time || "00:00"}`);
+      return activeTab === "upcoming" ? aDate - bDate : bDate - aDate;
+    });
+  }
+
+  const displayedClasses =
+    activeTab === "upcoming" ? filterList(upcomingClasses) : filterList(historyClasses);
+
   return (
     <>
-      <MemberHeader
-        user={user}
-        setUser={setUser}
-        onProfile={() => setShowProfile(true)}
-      />
+      <MemberHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
       <div className={styles.bgWrapper}>
         {images.map((img, idx) => (
           <div
@@ -90,95 +137,132 @@ export default function MyBookedClasses({ user, setUser }) {
         ))}
         <div className={styles.overlay} />
         <main className={styles.mainContent}>
-          <div className={styles.classesSection}>
-            <h2 className={styles.title}>My Booked Classes</h2>
-            {loading && <div className={styles.loader}>Loading...</div>}
-            {!loading && (
-              <>
-                {err && (
-                  <div style={{ color: "red", marginBottom: "1rem", fontWeight: "600" }}>
-                    {err}
-                  </div>
-                )}
-                {msg && (
-                  <div style={{ color: "green", marginBottom: "1rem", fontWeight: "600" }}>
-                    {msg}
-                  </div>
-                )}
-                {classes.length === 0 ? (
-                  <div style={{ color: "#ccc", fontSize: "1.1rem" }}>
-                    You have no upcoming classes.
-                  </div>
-                ) : (
-                  <ul className={styles.classList}>
-                    {classes.map(cls => (
-                      <li key={cls.ClassID} className={styles.classCard}>
-                        <div><strong>Type:</strong> {cls.ClassType}</div>
-                        <div><strong>Date:</strong> {formatDateTime(cls.Schedule, cls.time)}</div>
-                        <div><strong>Trainer:</strong> {cls.TrainerFirstName} {cls.TrainerLastName}</div>
+          {/* --- FILTERS ROW --- */}
+          <div className={styles.filtersRow}>
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel}>Date:</label>
+              <input
+                type="date"
+                className={styles.filterDateInput}
+                value={filterDate}
+                onChange={e => setFilterDate(e.target.value)}
+                max="2099-12-31"
+              />
+            </div>
+            <div className={styles.filterGroup}>
+              <label className={styles.filterLabel}>Type:</label>
+              <select
+                className={styles.filterTypeSelect}
+                value={filterType}
+                onChange={e => setFilterType(e.target.value)}
+              >
+                <option value="">All Types</option>
+                {classTypes.map(type => (
+                  <option key={type.type || type.ClassType || type.id} value={type.type || type.ClassType}>
+                    {type.type || type.ClassType}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-                        {confirmCancelId === cls.ClassID ? (
-                          <div style={{ marginTop: 12 }}>
-                            <span>Are you sure you want to cancel?</span>
+          {/* --- TABS --- */}
+          <div className={styles.tabHeaderRow}>
+            <button
+              className={`${styles.tabBtn} ${activeTab === "upcoming" ? styles.activeTab : ""}`}
+              onClick={() => setActiveTab("upcoming")}
+              type="button"
+            >
+              My Classes
+            </button>
+            <button
+              className={`${styles.tabBtn} ${activeTab === "history" ? styles.activeTab : ""}`}
+              onClick={() => setActiveTab("history")}
+              type="button"
+            >
+              Class History
+            </button>
+          </div>
+          {/* --- CARD CONTAINER --- */}
+          <div className={styles.card}>
+            {activeTab === "upcoming" && (
+              <div className={styles.title}>My Upcoming Classes</div>
+            )}
+            {activeTab === "history" && (
+              <div className={styles.title}>Class History</div>
+            )}
+            <div className={styles.underline}></div>
+            {loading ? (
+              <div className={styles.emptyMsg}>Loading...</div>
+            ) : displayedClasses.length === 0 ? (
+              <div className={styles.emptyMsg}>
+                {activeTab === "upcoming" ? "You have no upcoming classes." : "No class history yet."}
+              </div>
+            ) : (
+              <ul className={styles.classList}>
+                {displayedClasses.map(cls => (
+                  <li key={cls.ClassID} className={styles.classItem}>
+                    <div className={styles.classRow}>
+                      <div className={styles.classDetails}>
+                        <div className={styles.classType}>
+                          {cls.ClassType || cls.ClassTypeName || "Class"}
+                        </div>
+                        <div className={styles.classDateTime}>
+                          {formatDateTime(cls.Schedule, cls.time)}
+                        </div>
+                        <div className={styles.classTrainer}>
+                          Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
+                        </div>
+                      </div>
+                      <div className={styles.classActions}>
+                        {activeTab === "upcoming" && (
+                          confirmCancelId === cls.ClassID ? (
+                            <div>
+                              <span className={styles.confirmMsg}>Are you sure?</span>
+                              <button
+                                onClick={() => handleCancel(cls.ClassID)}
+                                disabled={cancelling === cls.ClassID}
+                                className={styles.confirmBtn}
+                              >
+                                {cancelling === cls.ClassID ? "Cancelling..." : "Yes"}
+                              </button>
+                              <button
+                                onClick={() => setConfirmCancelId(null)}
+                                disabled={cancelling === cls.ClassID}
+                                className={styles.cancelBtn}
+                              >
+                                No
+                              </button>
+                            </div>
+                          ) : (
                             <button
-                              onClick={() => handleCancel(cls.ClassID)}
-                              disabled={cancelling === cls.ClassID}
-                              style={{
-                                marginLeft: 12,
-                                backgroundColor: "#ff6464",
-                                color: "white",
-                                border: "none",
-                                borderRadius: 5,
-                                padding: "6px 12px",
-                                cursor: cancelling === cls.ClassID ? "not-allowed" : "pointer"
-                              }}
+                              className={styles.cancelBtn}
+                              onClick={() => setConfirmCancelId(cls.ClassID)}
+                              disabled={!!cancelling}
                             >
-                              {cancelling === cls.ClassID ? "Cancelling..." : "Yes"}
+                              Cancel
                             </button>
-                            <button
-                              onClick={() => setConfirmCancelId(null)}
-                              disabled={cancelling === cls.ClassID}
-                              style={{
-                                marginLeft: 8,
-                                backgroundColor: "#ccc",
-                                border: "none",
-                                borderRadius: 5,
-                                padding: "6px 12px",
-                                cursor: cancelling === cls.ClassID ? "not-allowed" : "pointer"
-                              }}
-                            >
-                              No
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            className={styles.cancelBtn}
-                            onClick={() => setConfirmCancelId(cls.ClassID)}
-                            disabled={!!cancelling}
-                            style={{
-                              marginTop: 15,
-                              background: "#ff6464",
-                              color: "#fff",
-                              border: "none",
-                              borderRadius: "7px",
-                              fontWeight: "700",
-                              padding: "9px 18px",
-                              cursor: cancelling ? "not-allowed" : "pointer",
-                              opacity: cancelling === cls.ClassID ? 0.5 : 1
-                            }}
-                          >
-                            Cancel
-                          </button>
+                          )
                         )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {err && (
+              <div style={{ color: "red", marginTop: "1rem", fontWeight: "600" }}>
+                {err}
+              </div>
+            )}
+            {msg && (
+              <div style={{ color: "green", marginTop: "1rem", fontWeight: "600" }}>
+                {msg}
+              </div>
             )}
           </div>
         </main>
-        <Footer className={styles.footer} />
+        <Footer />
         <ProfileModal
           show={showProfile}
           onClose={() => setShowProfile(false)}

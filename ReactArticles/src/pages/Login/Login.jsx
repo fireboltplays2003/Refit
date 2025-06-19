@@ -4,7 +4,7 @@ import { useState } from "react";
 import classes from "./Login.module.css";
 import { NavLink } from "react-router-dom";
 
-export default function Login({ setIsLoggedIn, setUser }) { // <-- add setUser here!
+export default function Login({ setUser }) { // <-- add setUser here!
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");

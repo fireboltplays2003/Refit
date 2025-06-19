@@ -7,7 +7,7 @@ import { format, isBefore, isSameDay } from "date-fns";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import styles from "./ModifyClassView.module.css";
-
+import { useNavigate } from "react-router-dom";
 // Format date for display
 function formatDateDMY(date) {
   return date ? format(date, "dd/MM/yyyy") : "";
@@ -21,7 +21,7 @@ function formatDateToISO(date) {
 // Format time for display in 'HH:mm'
 function formatTime(time) {
   if (!time) return "";
-  return time.length > 5 ? time.slice(0, 5) : time; // This ensures the time is correctly formatted
+  return time.length > 5 ? time.slice(0, 5) : time;
 }
 
 // Get Israel current hour accurately
@@ -56,24 +56,42 @@ export default function ModifyClassView({ user, setUser }) {
   const [showProfile, setShowProfile] = useState(false);
   const [bgIndex, setBgIndex] = useState(0);
   const [classTypes, setClassTypes] = useState([]);
-  const [classes, setClasses] = useState([]);
+  const [allClasses, setAllClasses] = useState([]); // Changed to allClasses, not just the trainer's
+  const [classes, setClasses] = useState([]); // The trainer's classes only
+  const navigate = useNavigate();
   const [selectedClassId, setSelectedClassId] = useState("");
   const [form, setForm] = useState({
     classTypeId: "",
-    schedule: null,  // Date object
+    schedule: null,
     time: "",
     maxParticipants: ""
   });
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState(""); // Initialize success state here
+  const [success, setSuccess] = useState("");
   const [showCalendar, setShowCalendar] = useState(false);
   const dateInputRef = useRef();
+
+
+
+  useEffect(() => {
+    if (!user || !user.Role) {
+      navigate("/login");
+    } else if (user.Role !== "trainer") {
+      navigate("/" + user.Role);
+    }
+  }, [user, navigate]);
+
 
   useEffect(() => {
     fetchClasses();
     axios.get("/trainer/class-types", { withCredentials: true })
       .then((res) => setClassTypes(res.data))
       .catch(() => setError("Could not fetch class types."));
+
+    // 👇 GET ALL CLASSES (all trainers)
+    axios.get("/trainer/classes/all", { withCredentials: true })
+      .then(res => setAllClasses(res.data || []))
+      .catch(() => setError("Could not fetch all classes."));
   }, []);
 
   useEffect(() => {
@@ -124,25 +142,24 @@ export default function ModifyClassView({ user, setUser }) {
     allHours.push(`${h}:00`);
   }
 
-  // Filter booked hours for selected date (all trainers)
+  // Use ALL classes for hour exclusion, like AddClassView (except the class being edited)
   const bookedHoursForDate = new Set();
   if (form.schedule) {
     const isoSelectedDate = formatDateToISO(form.schedule);
-    classes.forEach(cls => {
+    allClasses.forEach(cls => {
       if (!cls.Schedule || !cls.time) return;
       const classDate = String(cls.Schedule).slice(0, 10);
+      // Exclude THIS class (the one we're editing)
       if (classDate === isoSelectedDate && cls.ClassID !== Number(selectedClassId)) {
         bookedHoursForDate.add(cls.time.slice(0, 5));
       }
     });
   }
-
-  // Available hours = all hours minus booked for selected date excluding the current class's time
   const availableHours = allHours.filter(h => !bookedHoursForDate.has(h));
 
   function clearMessages() {
     setError("");
-    setSuccess(""); // Clear success message as well
+    setSuccess("");
   }
 
   function handleSubmit(e) {
@@ -202,7 +219,7 @@ export default function ModifyClassView({ user, setUser }) {
     }, { withCredentials: true })
       .then(() => {
         setError("");
-        setSuccess("Class updated successfully!"); // Add success message
+        setSuccess("Class updated successfully!");
         fetchClasses();
       })
       .catch(err => {
@@ -216,7 +233,7 @@ export default function ModifyClassView({ user, setUser }) {
     axios.delete(`/trainer/class/${selectedClassId}`, { withCredentials: true })
       .then(() => {
         setSelectedClassId("");
-        setSuccess("Class deleted successfully!"); // Add success message
+        setSuccess("Class deleted successfully!");
         fetchClasses();
       })
       .catch(err => {
@@ -243,7 +260,6 @@ export default function ModifyClassView({ user, setUser }) {
       <main className={styles.mainContent}>
         <div className={styles.formContainer}>
           <h2 className={styles.addClassHeader}>Modify Existing Class</h2>
-         
           <div>
             <label htmlFor="class">Pick a Class:</label>
             <select

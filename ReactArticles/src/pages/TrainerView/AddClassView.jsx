@@ -7,6 +7,7 @@ import { format, isBefore, isSameDay } from "date-fns";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
 import styles from "./AddClassView.module.css";
+import { useNavigate } from "react-router-dom";
 
 // Format date for display
 function formatDateDMY(date) {
@@ -58,6 +59,15 @@ export default function AddClassView({ user, setUser }) {
   const [showCalendar, setShowCalendar] = useState(false);
   const dateInputRef = useRef();
   const successTimeoutRef = useRef();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!user || !user.Role) {
+      navigate("/login");
+    } else if (user.Role !== "trainer") {
+      navigate("/" + user.Role);
+    }
+  }, [user, navigate]);
+
 
   useEffect(() => {
     axios.get("/trainer/class-types", { withCredentials: true })

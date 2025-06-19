@@ -3,7 +3,7 @@ import TrainerHeader from "./TrainerHeader";
 import Footer from "../../components/Footer";
 import styles from "./MyClasses.module.css";
 import axios from "axios";
-
+import { useNavigate } from "react-router-dom";
 // Helper: format to "dd/mm/yyyy HH:MM"
 function formatDateTime(isoDate, time) {
   if (!isoDate) return "";
@@ -11,8 +11,7 @@ function formatDateTime(isoDate, time) {
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
-  let hour = "00",
-    min = "00";
+  let hour = "00", min = "00";
   if (time && time.length >= 5) [hour, min] = time.split(":");
   return `${day}/${month}/${year} ${hour}:${min}`;
 }
@@ -28,10 +27,25 @@ const images = [
 
 export default function MyClasses({ user, setUser }) {
   const [bgIndex, setBgIndex] = useState(0);
-  const [classes, setClasses] = useState([]);
+  const [allClasses, setAllClasses] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState([]);
+  const [activeTab, setActiveTab] = useState("upcoming");
+  const [loading, setLoading] = useState(true);
+  const [classTypes, setClassTypes] = useState([]);
+  const [filterDate, setFilterDate] = useState("");
+  const [filterType, setFilterType] = useState("");
+const navigate = useNavigate();
 
+useEffect(() => {
+  if (!user || !user.Role) {
+    navigate("/login");
+  } else if (user.Role !== "trainer") {
+    navigate("/" + user.Role);
+  }
+}, [user, navigate]);
+
+  // BG
   useEffect(() => {
     const interval = setInterval(() => {
       setBgIndex((prev) => (prev + 1) % images.length);
@@ -39,15 +53,36 @@ export default function MyClasses({ user, setUser }) {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch all classes
   useEffect(() => {
     fetchClassesWithMembers();
+    fetchClassTypes();
   }, []);
 
   function fetchClassesWithMembers() {
+    setLoading(true);
     axios
       .get("/trainer/classes-with-members", { withCredentials: true })
-      .then((res) => setClasses(res.data))
-      .catch(() => setClasses([]));
+      .then((res) => {
+        const sorted = (res.data || []).slice().sort((a, b) => {
+          const aDate = new Date(`${a.Schedule}T${a.time || "00:00"}`);
+          const bDate = new Date(`${b.Schedule}T${b.time || "00:00"}`);
+          return aDate - bDate;
+        });
+        setAllClasses(sorted);
+        setLoading(false);
+      })
+      .catch(() => {
+        setAllClasses([]);
+        setLoading(false);
+      });
+  }
+
+  function fetchClassTypes() {
+    axios
+      .get("/trainer/class-types", { withCredentials: true })
+      .then((res) => setClassTypes(res.data || []))
+      .catch(() => setClassTypes([]));
   }
 
   function openMembersModal(className, members) {
@@ -59,6 +94,41 @@ export default function MyClasses({ user, setUser }) {
     setModalOpen(false);
     setSelectedMembers([]);
   }
+
+  // Filter logic
+  const now = new Date();
+
+  // Split classes
+  const upcomingClasses = allClasses.filter((cls) => {
+    const classDateTime = new Date(`${cls.Schedule}T${cls.time || "00:00"}`);
+    return classDateTime >= now;
+  });
+  const historyClasses = allClasses.filter((cls) => {
+    const classDateTime = new Date(`${cls.Schedule}T${cls.time || "00:00"}`);
+    return classDateTime < now;
+  });
+
+  // Apply filters
+  function filterList(list) {
+    return list.filter((cls) => {
+      let match = true;
+      // Filter by date
+      if (filterDate) {
+        // filterDate is yyyy-mm-dd; cls.Schedule is yyyy-mm-dd
+        match = match && cls.Schedule === filterDate;
+      }
+      // Filter by type
+      if (filterType) {
+        match = match && String(cls.ClassType) === String(filterType);
+      }
+      return match;
+    });
+  }
+
+  const displayedClasses =
+    activeTab === "upcoming"
+      ? filterList(upcomingClasses)
+      : filterList(historyClasses);
 
   return (
     <div className={styles.bgWrapper}>
@@ -78,24 +148,82 @@ export default function MyClasses({ user, setUser }) {
       <TrainerHeader
         trainer={user}
         setTrainer={setUser}
-        onProfile={() => {
-          /* profile modal logic here if needed */
-        }}
+        onProfile={() => {}}
       />
       <main className={styles.mainContent}>
+        {/* FILTERS ROW */}
+        <div className={styles.filtersRow}>
+          <div className={styles.filterGroup}>
+            <label className={styles.filterLabel}>Date:</label>
+            <input
+              type="date"
+              className={styles.filterDateInput}
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              max="2099-12-31"
+            />
+          </div>
+          <div className={styles.filterGroup}>
+            <label className={styles.filterLabel}>Type:</label>
+            <select
+              className={styles.filterTypeSelect}
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+            >
+              <option value="">All Types</option>
+              {classTypes.map((type) => (
+                <option key={type.id} value={type.id}>
+                  {type.type}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         <div className={styles.card}>
-          <div className={styles.title}>My Classes</div>
+          {/* TABS inside card, left side */}
+          <div className={styles.tabHeaderRow}>
+            <button
+              className={`${styles.tabBtn} ${
+                activeTab === "upcoming" ? styles.activeTab : ""
+              }`}
+              onClick={() => setActiveTab("upcoming")}
+              type="button"
+            >
+              My Classes
+            </button>
+            <button
+              className={`${styles.tabBtn} ${
+                activeTab === "history" ? styles.activeTab : ""
+              }`}
+              onClick={() => setActiveTab("history")}
+              type="button"
+            >
+              Class History
+            </button>
+          </div>
+          {/* Card Title */}
+          {activeTab === "upcoming" && (
+            <div className={styles.title}>My Upcoming Classes</div>
+          )}
+          {activeTab === "history" && (
+            <div className={styles.title}>Class History</div>
+          )}
           <div className={styles.underline}></div>
-          {classes.length === 0 ? (
+          {loading ? (
+            <div className={styles.emptyMsg}>Loading...</div>
+          ) : displayedClasses.length === 0 ? (
             <div className={styles.emptyMsg}>No classes found.</div>
           ) : (
             <ul className={styles.classList}>
-              {classes.map((cls) => {
+              {displayedClasses.map((cls) => {
                 const currentCount = cls.Members ? cls.Members.length : 0;
                 const maxParticipants = cls.MaxParticipants ?? 0;
 
                 const countDisplay =
-                  maxParticipants === 0 ? "0/0" : `${currentCount}/${maxParticipants}`;
+                  maxParticipants === 0
+                    ? "0/0"
+                    : `${currentCount}/${maxParticipants}`;
 
                 return (
                   <li key={cls.ClassID} className={styles.classItem}>
@@ -113,7 +241,10 @@ export default function MyClasses({ user, setUser }) {
                         <button
                           className={styles.viewBtn}
                           onClick={() =>
-                            openMembersModal(cls.ClassTypeName || "Class", cls.Members)
+                            openMembersModal(
+                              cls.ClassTypeName || "Class",
+                              cls.Members
+                            )
                           }
                         >
                           View Members
@@ -126,9 +257,13 @@ export default function MyClasses({ user, setUser }) {
             </ul>
           )}
         </div>
+        {/* MEMBERS MODAL */}
         {modalOpen && (
           <div className={styles.popupBackdrop} onClick={closeModal}>
-            <div className={styles.membersModal} onClick={(e) => e.stopPropagation()}>
+            <div
+              className={styles.membersModal}
+              onClick={(e) => e.stopPropagation()}
+            >
               <button className={styles.membersClose} onClick={closeModal}>
                 &times;
               </button>

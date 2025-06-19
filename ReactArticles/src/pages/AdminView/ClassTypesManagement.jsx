@@ -5,6 +5,7 @@ import styles from "./ClassTypesManagement.module.css";
 import AdminHeader from "../AdminView/AdminHeader";
 import ProfileModal from "../../components/ProfileModal";
 import Footer from "../../components/Footer";
+import { useNavigate } from "react-router-dom";
 
 export default function ClassTypesManagement({ user, setUser }) {
   const [classTypes, setClassTypes] = useState([]);
@@ -13,7 +14,18 @@ export default function ClassTypesManagement({ user, setUser }) {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [showProfile, setShowProfile] = useState(false);
+  const navigate = useNavigate();
 
+
+  useEffect(() => {
+    if (!user || !user.Role) {
+      navigate("/login");
+    } else if (user.Role !== "admin") {
+      navigate("/" + user.Role);
+    }
+  }, [user, navigate]);
+
+  
   useEffect(() => {
     fetchClassTypes();
   }, []);

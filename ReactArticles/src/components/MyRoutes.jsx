@@ -25,8 +25,8 @@ function MyRoutes({ user, setUser }) {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/login" />} />
-      <Route path="/login" element={<Login setUser={setUser} />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/login" element={<Login user={user} setUser={setUser} />} />
+      <Route path="/register" element={<Register user={user} setUser={setUser} />} />
       <Route path="/my-booked-classes" element={<MyBookedClasses user={user} setUser={setUser} />} />
       <Route path="/trainer/classes" element={<MyClasses user={user} setUser={setUser} />} />
       <Route path="/trainer" element={<TrainerView user={user} setUser={setUser} />} />

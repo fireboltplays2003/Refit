@@ -5,7 +5,6 @@ import ProfileModal from "../../components/ProfileModal";
 import styles from "./AdminView.module.css";
 import axios from "axios";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
-
 const images = [
   "/img/img1.jpg",
   "/img/img2.jpg",
@@ -17,9 +16,16 @@ const images = [
 
 export default function AdminView({ user, setUser }) {
   const navigate = useNavigate();
-  const [authorized, setAuthorized] = useState(false);
   const [bgIndex, setBgIndex] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
+
+  useEffect(() => {
+    if (!user || !user.Role) {
+      navigate("/login");
+    } else if (user.Role !== "admin") {
+      navigate("/" + user.Role);
+    }
+  }, [user, navigate]);
 
   // Dashboard stats
   const [stats, setStats] = useState({
@@ -42,14 +48,7 @@ export default function AdminView({ user, setUser }) {
     { name: "Active Memberships", value: Number(stats.activeMemberships) || 0 }
   ];
 
-  useEffect(() => {
-    if (!user || !user.Role) return;
-    if (user.Role !== "admin") {
-      navigate("/" + user.Role);
-    } else {
-      setAuthorized(true);
-    }
-  }, [user, navigate]);
+
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -109,7 +108,7 @@ export default function AdminView({ user, setUser }) {
       .catch(() => setPendingStatus("Error rejecting trainer."));
   }
 
-  if (!authorized) return null;
+ 
 
   return (
     <div className={styles.bgWrapper}>
