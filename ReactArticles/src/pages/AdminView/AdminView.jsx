@@ -151,7 +151,7 @@ export default function AdminView({ user, setUser }) {
         {/* Upcoming 30 days */}
         <div className={styles.classSectionContainer}>
           <section className={styles.classesSection}>
-            <h2 className={styles.sectionTitle}>Upcoming Classes (Next 30 Days)</h2>
+            <h2 className={styles.sectionTitle}>All Upcoming Classes</h2>
             <div className={styles.sectionDivider} />
             {loading ? (
               <div className={styles.loadingMsg}>Loading classes...</div>

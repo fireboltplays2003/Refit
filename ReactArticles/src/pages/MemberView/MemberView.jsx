@@ -4,6 +4,7 @@ import styles from "./MemberView.module.css";
 import MemberHeader from "./MemberHeader";
 import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
+import axios from "axios";
 
 const images = [
   "/img/img1.jpg",
@@ -74,7 +75,9 @@ export default function MemberView({ user, setUser }) {
   const [classes, setClasses] = useState([]);
   const [fetchingClasses, setFetchingClasses] = useState(true);
 
-
+  // All upcoming classes in gym
+  const [allUpcomingClasses, setAllUpcomingClasses] = useState([]);
+  const [loadingAllUpcoming, setLoadingAllUpcoming] = useState(true);
 
   useEffect(() => {
     if (!user || !user.Role) {
@@ -83,10 +86,6 @@ export default function MemberView({ user, setUser }) {
       navigate("/" + user.Role);
     }
   }, [user, navigate]);
-
-
-
-
 
   // MEMBERSHIP CARD
   const [membership, setMembership] = useState(null);
@@ -120,10 +119,8 @@ export default function MemberView({ user, setUser }) {
   useEffect(() => {
     if (!authorized) return;
     setFetchingClasses(true);
-    fetch("/member/my-booked-classes", {
-      credentials: "include"
-    })
-      .then(res => res.json())
+    axios.get("/member/my-booked-classes", { withCredentials: true })
+      .then(res => res.data)
       .then(data => {
         setClasses(Array.isArray(data) ? data : []);
         setAttendance(Array.isArray(data) ? data.filter(cls => {
@@ -140,12 +137,28 @@ export default function MemberView({ user, setUser }) {
       });
   }, [authorized]);
 
+  // Fetch all upcoming classes in gym (not just member's)
+  useEffect(() => {
+    if (!authorized) return;
+    setLoadingAllUpcoming(true);
+    axios.get("/member/all-upcoming-classes-with-count", { withCredentials: true })
+      .then(res => res.data)
+      .then(data => {
+        setAllUpcomingClasses(Array.isArray(data) ? data : []);
+        setLoadingAllUpcoming(false);
+      })
+      .catch(() => {
+        setAllUpcomingClasses([]);
+        setLoadingAllUpcoming(false);
+      });
+  }, [authorized]);
+
   // MEMBERSHIP CARD: fetch membership info
   useEffect(() => {
     if (!authorized) return;
     setMembershipLoading(true);
-    fetch("/member/my-membership", { credentials: "include" })
-      .then(res => res.ok ? res.json() : null)
+    axios.get("/member/my-membership", { withCredentials: true })
+      .then(res => res.data)
       .then(data => {
         setMembership(data || null);
         setMembershipLoading(false);
@@ -258,8 +271,9 @@ export default function MemberView({ user, setUser }) {
           </div>
 
           <div className={styles.classSectionContainer}>
+            {/* --- 1. Your Booked Upcoming Classes --- */}
             <section className={styles.classesSection}>
-              <h2 className={styles.sectionTitle}>Upcoming Classes</h2>
+              <h2 className={styles.sectionTitle}>My Upcoming Classes</h2>
               {fetchingClasses ? (
                 <div className={styles.loadingMsg}>Loading classes...</div>
               ) : upcomingClasses.length === 0 ? (
@@ -289,8 +303,48 @@ export default function MemberView({ user, setUser }) {
                 </div>
               )}
             </section>
+
+            {/* === 2. All Upcoming Classes in Gym (not just your bookings) === */}
             <section className={styles.classesSection}>
-              <h2 className={styles.sectionTitle}>Class History</h2>
+              <h2 className={styles.sectionTitle}>All Upcoming Classes</h2>
+              {loadingAllUpcoming ? (
+                <div className={styles.loadingMsg}>Loading all classes...</div>
+              ) : allUpcomingClasses.length === 0 ? (
+                <div className={styles.noClassesMsg}>
+                  No upcoming classes in the gym
+                </div>
+              ) : (
+                <div className={styles.classListHorizontal}>
+                  {allUpcomingClasses.map(cls => (
+                    <div className={styles.classCard} key={cls.ClassID}>
+                      <div className={styles.classMainInfo}>
+                        <span className={styles.classType}>{cls.ClassTypeName || cls.ClassType || "Class"}</span>
+                        <span className={styles.classDateTime}>
+                          {toDisplayDate(cls.Schedule)} at {cls.time?.slice(0, 5)}
+                        </span>
+                      </div>
+                      <div className={styles.classTrainer}>
+                        Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
+                      </div>
+                      <div className={styles.bookedCountRow}>
+                        <span className={styles.bookedCountNum}>
+                          {cls.bookedCount}/{cls.MaxParticipants} booked
+                        </span>
+                      </div>
+                      {(() => {
+                        const lbl = getUpcomingLabel(cls.Schedule, cls.time);
+                        if (!lbl) return null;
+                        return <span className={styles.upcomingLabel}>{lbl}</span>;
+                      })()}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            {/* --- 3. Past Class History --- */}
+            <section className={styles.classesSection}>
+              <h2 className={styles.sectionTitle}>My Class History</h2>
               {fetchingClasses ? (
                 <div className={styles.loadingMsg}>Loading history...</div>
               ) : pastClasses.length === 0 ? (

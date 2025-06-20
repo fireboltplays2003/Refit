@@ -250,7 +250,7 @@ export default function TrainerView({ user, setUser }) {
         {/* -- Existing Classes List as before -- */}
         <div className={styles.classSectionContainer}>
           <section className={styles.classesSection}>
-            <h2 className={styles.sectionTitle}>Existing Classes</h2>
+            <h2 className={styles.sectionTitle}>All Upcoming Classes</h2>
             {fetchingAll ? (
               <div className={styles.loadingMsg}>Loading classes...</div>
             ) : allUpcomingClasses.length === 0 ? (

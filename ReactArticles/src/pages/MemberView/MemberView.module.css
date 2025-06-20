@@ -494,3 +494,21 @@
     padding: 1rem 0.2rem 1.2rem 0.2rem;
   }
 }
+
+.bookedCountRow {
+  margin: 0.4rem 0 0.4rem 0;
+  background: #232848;
+  border-radius: 1.4rem;
+  padding: 0.35rem 0 0.35rem 0;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bookedCountNum {
+  color: #4bb1ff;         /* Bright blue for visibility */
+  font-size: 1.14rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
