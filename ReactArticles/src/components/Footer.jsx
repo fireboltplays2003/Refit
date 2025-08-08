@@ -1,4 +1,5 @@
 import styles from "./Footer.module.css";
+import { NavLink } from "react-router-dom";
 
 export default function Footer() {
   return (
@@ -10,10 +11,13 @@ export default function Footer() {
         <div className={styles.contactInfo}>
           <div className={styles.contactTitle}>Contact Us</div>
           <div className={styles.contactEmails}>
-            <a href="mailto:Stephan042003@gmail.com">Stephan042003@gmail.com</a>
-            <span>|</span>
-            <a href="mailto:eliasthedab17@gmail.com">eliasthedab17@gmail.com</a>
+            <a href="mailto:refitgym.app@gmail.com" className={styles.footerLink}>refitgym.app@gmail.com</a>
           </div>
+        </div>
+        <div className={styles.footerLinksRow}>
+          <NavLink to="/about" className={styles.footerLink}>
+            About
+          </NavLink>
         </div>
         <div className={styles.copyright}>
           &copy; {new Date().getFullYear()} Refit. All rights reserved.

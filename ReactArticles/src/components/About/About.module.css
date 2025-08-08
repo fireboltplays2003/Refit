@@ -1,0 +1,212 @@
+.aboutWrapper {
+    min-height: 100vh;
+    background: linear-gradient(120deg, #202238 75%, #456aa1 140%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-bottom: 0;
+}
+
+  .mainContent {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 48px;
+    margin-bottom: 32px;
+  }
+  
+  .aboutCard {
+    background: rgba(27, 29, 44, 0.97);
+    border-radius: 28px;
+    box-shadow: 0 8px 44px #0008;
+    padding: 42px 45px 34px 45px;
+    margin-bottom: 48px;
+    max-width: 690px;
+    width: 100%;
+    text-align: center;
+  }
+  
+  .aboutTitle {
+    color: #ffd66b;
+    font-size: 2.8rem;
+    font-weight: 900;
+    letter-spacing: 1px;
+    margin-bottom: 18px;
+    text-shadow: 0 3px 22px #21213033;
+  }
+  
+  .aboutText {
+    color: #fff;
+    font-size: 1.22rem;
+    margin-bottom: 18px;
+  }
+  
+  .aboutList {
+    text-align: left;
+    list-style: none;
+    padding: 0;
+    margin: 0 0 18px 0;
+  }
+  
+  .aboutList li {
+    color: #ffd66b;
+    font-size: 1.15rem;
+    margin: 13px 0 0 0;
+    padding-left: 22px;
+    position: relative;
+    font-weight: 500;
+  }
+  
+  .aboutList li:before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #6ea8ff;
+    font-size: 1.22rem;
+    font-weight: bold;
+    top: 0.5px;
+  }
+  
+  /* Founders Section */
+  .foundersSection {
+    width: 100%;
+    max-width: 920px;
+    margin: 28px auto 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+  }
+  
+  .foundersTitle {
+    font-size: 2.1rem;
+    font-weight: 800;
+    color: #6ea8ff;
+    letter-spacing: 0.5px;
+    margin-bottom: 20px;
+    text-align: center;
+    text-shadow: 0 2px 18px #23253b44;
+  }
+  
+  .foundersGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 36px;
+    justify-content: center;
+  }
+  
+  .founderCard {
+    background: rgba(25, 26, 37, 0.92);
+    border-radius: 24px;
+    box-shadow: 0 4px 22px #26326360;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 285px;
+    min-height: 420px;
+    padding: 32px 24px 24px 24px;
+    margin-bottom: 10px;
+    position: relative;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  
+  .founderCard:hover {
+    transform: translateY(-5px) scale(1.035);
+    box-shadow: 0 12px 50px #5c71aa33;
+  }
+  
+  .founderImg {
+    width: 190px;
+    height: 190px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 5px solid #6ea8ff;
+    box-shadow: 0 4px 28px #21243660;
+    background: #1e2028;
+    margin-bottom: 18px;
+  }
+  
+  .founderInfo {
+    text-align: center;
+  }
+  
+  .founderName {
+    font-size: 1.24rem;
+    font-weight: 700;
+    color: #ffd66b;
+    margin-bottom: 2px;
+  }
+  
+  .founderRole {
+    font-size: 1.03rem;
+    color: #6ea8ff;
+    font-weight: 600;
+    margin-bottom: 7px;
+    letter-spacing: 0.2px;
+  }
+  
+  .founderBio {
+    font-size: 1rem;
+    color: #eee;
+    margin-top: 2px;
+    font-weight: 400;
+  }
+  
+  /* Responsive */
+  @media (max-width: 900px) {
+    .mainContent {
+      margin-top: 24px;
+    }
+    .aboutCard {
+      padding: 24px 6vw 23px 6vw;
+      max-width: 96vw;
+    }
+    .foundersSection {
+      padding: 0 2vw;
+      margin-top: 16px;
+    }
+    .foundersGrid {
+      gap: 18px;
+    }
+    .founderCard {
+      padding: 20px 8px 16px 8px;
+      width: 96vw;
+      max-width: 310px;
+    }
+  }
+  
+  @media (max-width: 600px) {
+    .aboutWrapper {
+      padding-bottom: 14vw;
+    }
+    .mainContent {
+      margin-top: 12vw;
+    }
+    .aboutCard {
+      padding: 7vw 2vw 8vw 2vw;
+      max-width: 100vw;
+      font-size: 1rem;
+    }
+    .foundersSection {
+      padding: 0 2vw;
+      margin-top: 4vw;
+    }
+    .foundersGrid {
+      flex-direction: column;
+      gap: 16px;
+    }
+    .founderCard {
+      width: 95vw;
+      min-width: unset;
+      max-width: 340px;
+      padding: 16px 3vw 16px 3vw;
+      min-height: unset;
+    }
+    .founderImg {
+      width: 112px;
+      height: 112px;
+    }
+  }
+  

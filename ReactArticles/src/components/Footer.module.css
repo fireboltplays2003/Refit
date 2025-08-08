@@ -151,3 +151,18 @@
   display: flex;
   flex-direction: column;
 }
+.footerLinksRow {
+  margin: 0.7em 0;
+  text-align: center;
+}
+
+.footerLink {
+  color: #69aaff;
+  text-decoration: none;
+  margin: 0 0.7em;
+  font-size: 1.08em;
+  transition: color 0.17s;
+}
+.footerLink:hover {
+  color: #ffd86b;
+}

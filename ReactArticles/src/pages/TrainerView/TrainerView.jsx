@@ -3,8 +3,10 @@ import { useNavigate } from "react-router-dom";
 import TrainerHeader from "./TrainerHeader";
 import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
-import styles from "./TrainerView.module.css";
 import axios from "axios";
+import styles from "./TrainerView.module.css";
+import CustomSelect from "../../components/CustomSelect"; // Adjust path accordingly
+
 
 const images = [
   "/img/img1.jpg",
@@ -14,21 +16,6 @@ const images = [
   "/img/img5.jpg",
   "/img/membershipImage.png"
 ];
-
-function toDateStringISO(date) {
-  return date.toISOString().slice(0, 10);
-}
-
-function formatDateTime(isoDate, time) {
-  if (!isoDate) return "";
-  const d = new Date(isoDate);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
-  let hour = "00", min = "00";
-  if (time && time.length >= 5) [hour, min] = time.split(":");
-  return `${day}/${month}/${year} ${hour}:${min}`;
-}
 
 function toDisplayDate(isoDate) {
   if (!isoDate) return "";
@@ -71,14 +58,38 @@ function getUpcomingLabel(classDate, classTime) {
     classWeek === nowWeek &&
     classDateTime > now
   ) {
+    const diffDays = Math.floor((classDateTime - now) / (1000 * 60 * 60 * 24));
+    if (diffDays < 3) return "in 3 days";
     return "This Week";
   } else if (
     (classY === todayY && classWeek === nowWeek + 1) ||
     (classY === todayY + 1 && nowWeek === 52 && classWeek === 1)
   ) {
     return "Next Week";
+  } else if (
+    (classY > todayY) ||
+    (classY === todayY && classM > todayM + 1)
+  ) {
+    return "Next Month";
   }
   return null;
+}
+
+function getLabelColor(lbl) {
+  switch (lbl) {
+    case "Today":
+      return { background: "#93ef87", color: "#1a3120" };
+    case "in 3 days":
+      return { background: "#ffd966", color: "#715700" };
+    case "This Week":
+      return { background: "#6ea8ff", color: "#223366" };
+    case "Next Week":
+      return { background: "#ffcf67", color: "#715700" };
+    case "Next Month":
+      return { background: "#b6b9c5", color: "#353942" };
+    default:
+      return { background: "#e0e0e0", color: "#333" };
+  }
 }
 
 export default function TrainerView({ user, setUser }) {
@@ -86,10 +97,23 @@ export default function TrainerView({ user, setUser }) {
   const [authorized, setAuthorized] = useState(false);
   const [bgIndex, setBgIndex] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
-  const [upcomingClasses, setUpcomingClasses] = useState([]); // For "Next 3 Days"
-  const [allUpcomingClasses, setAllUpcomingClasses] = useState([]); // For MemberView-style
-  const [loading, setLoading] = useState(true);
-  const [fetchingAll, setFetchingAll] = useState(true);
+
+  // My Classes (with members)
+  const [myClasses, setMyClasses] = useState([]);
+  const [loadingMy, setLoadingMy] = useState(true);
+  const [filterDateMy, setFilterDateMy] = useState("");
+  const [filterTypeMy, setFilterTypeMy] = useState("");
+  const [classTypes, setClassTypes] = useState([]);
+
+  // All Upcoming Classes (count, not including self)
+  const [allUpcomingClasses, setAllUpcomingClasses] = useState([]);
+  const [loadingAll, setLoadingAll] = useState(true);
+  const [filterDateAll, setFilterDateAll] = useState("");
+  const [filterTypeAll, setFilterTypeAll] = useState("");
+
+  // Members Modal
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState([]);
 
   useEffect(() => {
     if (!user || !user.UserID || user.Role !== "trainer") {
@@ -99,6 +123,7 @@ export default function TrainerView({ user, setUser }) {
     }
   }, [user, navigate]);
 
+  // BG animation
   useEffect(() => {
     const interval = setInterval(() => {
       setBgIndex(prev => (prev + 1) % images.length);
@@ -106,91 +131,234 @@ export default function TrainerView({ user, setUser }) {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch "Upcoming Classes (Next 3 Days)" — Only this trainer's classes
+  // Fetch class types (for filters)
+  useEffect(() => {
+    axios
+      .get("/trainer/class-types", { withCredentials: true })
+      .then(res => setClassTypes(res.data || []))
+      .catch(() => setClassTypes([]));
+  }, []);
+
+  // Fetch My Classes (with members)
   useEffect(() => {
     if (!user || !user.UserID) return;
-    setLoading(true);
+    setLoadingMy(true);
     axios
       .get("/trainer/classes-with-members", { withCredentials: true })
-      .then((res) => {
+      .then(res => {
         const now = new Date();
-        const todayISO = toDateStringISO(now);
-
-        const dateStrings = [];
-        for (let i = 0; i <= 3; i++) {
-          const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i);
-          dateStrings.push(toDateStringISO(d));
-        }
-
-        const filtered = (res.data || []).filter(cls => {
-          const isInDateRange = dateStrings.includes(cls.Schedule);
-          let passesFilter = false;
-
-          if (!isInDateRange) {
-            // out of next 3 days
-          } else if (cls.Schedule === todayISO) {
-            if (!cls.time) {
-              // skip if missing time
-            } else {
-              const [clsHour, clsMin] = cls.time.split(":").map(Number);
-              const nowHour = now.getHours();
-              const nowMin = now.getMinutes();
-
-              passesFilter =
-                clsHour > nowHour || (clsHour === nowHour && clsMin >= nowMin);
-            }
-          } else {
-            passesFilter = true;
-          }
-          return passesFilter;
-        });
-
-        filtered.sort((a, b) => {
-          const aDate = new Date(`${a.Schedule}T${a.time || "00:00"}`);
-          const bDate = new Date(`${b.Schedule}T${b.time || "00:00"}`);
-          return aDate - bDate;
-        });
-
-        setUpcomingClasses(filtered);
-        setLoading(false);
+        const sorted = (res.data || [])
+          .filter(cls => {
+            const dt = new Date(cls.Schedule + "T" + (cls.time || "00:00"));
+            return cls.TrainerID === user.UserID && dt >= now;
+          })
+          .sort((a, b) => new Date(a.Schedule + "T" + (a.time || "00:00")) - new Date(b.Schedule + "T" + (b.time || "00:00")));
+        setMyClasses(sorted);
+        setLoadingMy(false);
       })
       .catch(() => {
-        setUpcomingClasses([]);
-        setLoading(false);
+        setMyClasses([]);
+        setLoadingMy(false);
       });
   }, [user]);
 
-  // Fetch "All Upcoming Classes" in system WITH COUNT
+  // Fetch All Upcoming Classes (count only, not including self)
   useEffect(() => {
     if (!user || !user.UserID) return;
-    setFetchingAll(true);
+    setLoadingAll(true);
     axios
       .get("/trainer/all-upcoming-classes-with-count", { withCredentials: true })
-      .then((res) => {
-        // Only classes in the future or today
+      .then(res => {
         const now = new Date();
-        const upcoming = (res.data || []).filter(cls => {
-          const classDateTime = new Date(cls.Schedule + "T" + (cls.time || "00:00"));
-          return classDateTime >= now;
-        });
-        // Sort by soonest
-        upcoming.sort((a, b) =>
-          new Date(a.Schedule + "T" + (a.time || "00:00")) -
-          new Date(b.Schedule + "T" + (b.time || "00:00"))
-        );
-        setAllUpcomingClasses(upcoming);
-        setFetchingAll(false);
+        const all = (res.data || [])
+          .filter(cls => {
+            const dt = new Date(cls.Schedule + "T" + (cls.time || "00:00"));
+            return cls.TrainerID !== user.UserID && dt >= now;
+          })
+          .sort((a, b) => new Date(a.Schedule + "T" + (a.time || "00:00")) - new Date(b.Schedule + "T" + (b.time || "00:00")));
+        setAllUpcomingClasses(all);
+        setLoadingAll(false);
       })
       .catch(() => {
         setAllUpcomingClasses([]);
-        setFetchingAll(false);
+        setLoadingAll(false);
       });
   }, [user]);
+
+  // Filter logic (matches your MyClasses.jsx)
+  function filterList(list, date, type) {
+    return list.filter(cls => {
+      let match = true;
+      if (date) match = match && cls.Schedule === date;
+      if (type) match = match && String(cls.ClassType) === String(type);
+      return match;
+    });
+  }
+
+  function openMembersModal(members) {
+    setSelectedMembers(members || []);
+    setModalOpen(true);
+  }
+  function closeModal() {
+    setModalOpen(false);
+    setSelectedMembers([]);
+  }
 
   if (!authorized) return null;
 
   return (
     <div className={styles.bgWrapper}>
+      <style>{`
+        .tv-popupBackdrop {
+          position: fixed;
+          inset: 0;
+          z-index: 3000;
+          background: rgba(0,0,0,0.35);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+        .tv-membersModal {
+          background: #232427;
+          border-radius: 18px;
+          box-shadow: 0 6px 36px 0 #0009;
+          padding: 32px 32px 28px 32px;
+          width: 580px;
+          max-width: 98vw;
+          min-width: 380px;
+          margin: 0 auto;
+          position: fixed;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -60%);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          z-index: 4000;
+        }
+        .tv-membersModalTitle {
+          color: #6ea8ff;
+          text-align: center;
+          font-size: 2rem;
+          font-weight: 700;
+          margin-bottom: 18px;
+        }
+        .tv-membersClose {
+          position: absolute;
+          right: 20px;
+          top: 18px;
+          font-size: 2.1rem;
+          cursor: pointer;
+          color: #eee;
+          background: none;
+          border: none;
+        }
+        .tv-membersTable {
+          width: 100%;
+          border-collapse: separate;
+          border-spacing: 0;
+          background: none;
+          margin-top: 6px;
+          font-size: 1.07rem;
+        }
+        .tv-membersTable th, .tv-membersTable td {
+          padding: 10px 7px;
+          text-align: left;
+        }
+        .tv-membersTable th {
+          color: #6ea8ff;
+          font-size: 1.12rem;
+          font-weight: 700;
+          border-bottom: 2px solid #32343a;
+        }
+        .tv-membersTable td {
+          border-bottom: 1px solid #2a2a2a;
+          color: #f0f0f0;
+          word-break: break-all;
+        }
+        .tv-membersTable td[colspan] {
+          text-align: center;
+          color: #bbb;
+          padding: 24px 0 10px 0;
+          font-size: 1.13rem;
+        }
+        .tv-wideBtn {
+          width: 100%;
+          font-size: 1.09rem;
+          font-weight: 700;
+          padding: 7px 0;
+          border-radius: 8px;
+          background: #6ea8ff;
+          color: #232427;
+          border: none;
+          margin: 0 0 6px 0;
+          cursor: pointer;
+          display: block;
+          text-align: center;
+          transition: background 0.13s;
+        }
+        .tv-wideBtn:hover {
+          background: #8dcaff;
+        }
+        .tv-labelBtn {
+          width: 100%;
+          font-size: 1.09rem;
+          font-weight: 700;
+          padding: 7px 0;
+          border-radius: 8px;
+          border: none;
+          margin: 0 0 6px 0;
+          display: block;
+          text-align: center;
+          pointer-events: none;
+        }
+        .tv-welcomeContainer {
+          width: 100%;
+          display: flex;
+          flex-direction: column;
+          align-items: flex-start;
+          margin: 0 0 32px 0;
+          padding-left: 14px;
+        }
+        .tv-welcomeTitle {
+          font-size: 2rem;
+          font-weight: 800;
+          color: #6ea8ff;
+          margin-bottom: 3px;
+          letter-spacing: 0.2px;
+        }
+        .tv-highlight {
+          color: #ffcf67;
+        }
+        .tv-welcomeText {
+          font-size: 1.11rem;
+          color: #bbb;
+          margin-bottom: 4px;
+        }
+        .tv-filtersRow {
+          display: flex;
+          gap: 20px;
+          margin-bottom: 18px;
+        }
+        .tv-filterGroup {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+        .tv-filterLabel {
+          color: #6ea8ff;
+          font-weight: 600;
+          font-size: 1rem;
+          margin-right: 3px;
+        }
+        .tv-filterDateInput, .tv-filterTypeSelect {
+          background: #20232a;
+          border: 1px solid #333;
+          color: #eee;
+          border-radius: 7px;
+          padding: 4px 8px;
+        }
+      `}</style>
       {images.map((img, idx) => (
         <div
           key={idx}
@@ -209,92 +377,226 @@ export default function TrainerView({ user, setUser }) {
         setTrainer={setUser}
         onProfile={() => setShowProfile(true)}
       />
+
       <main className={styles.mainContent}>
-        {/* -- FLEX CONTAINER: Welcome Left, Classes Card Right -- */}
-        <div className={styles.flexRow}>
-          <div className={styles.welcomeContainer}>
-            <h1 className={styles.welcomeTitle}>
-              Welcome Back, <span className={styles.highlight}>{`${user?.FirstName || ""} ${user?.LastName || ""}`}</span>!
-            </h1>
-            <p className={styles.welcomeText}>
-              Here is your dashboard. You can manage your classes, and more.
-            </p>
-          </div>
-          <div className={styles.upcomingCard}>
-            <div className={styles.upcomingTitle}>UpComing Classes (Next 3 Days)</div>
-            <div className={styles.upcomingUnderline}></div>
-            {loading ? (
-              <div className={styles.upcomingMsg}>Loading…</div>
-            ) : upcomingClasses.length === 0 ? (
-              <div className={styles.upcomingMsg}>No upcoming classes in the next 3 days.</div>
-            ) : (
-              <ul className={styles.upcomingList}>
-                {upcomingClasses.map(cls => (
-                  <li key={cls.ClassID} className={styles.upcomingItem}>
-                    <div>
-                      <span className={styles.upcomingType}>{cls.ClassTypeName || "Class"}</span>
-                      <span className={styles.upcomingDate}>
-                        {formatDateTime(cls.Schedule, cls.time)}
-                      </span>
-                    </div>
-                    <div className={styles.upcomingMembers}>
-                      {cls.Members?.length || 0} booked
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+        {/* --- Welcome message at top --- */}
+        <div className="tv-welcomeContainer">
+          <h1 className="tv-welcomeTitle">
+            Welcome Back, <span className="tv-highlight">{`${user?.FirstName || ""} ${user?.LastName || ""}`}</span>!
+          </h1>
+          <p className="tv-welcomeText">
+            Here is your dashboard. You can manage your classes, and more.
+          </p>
         </div>
 
-        {/* -- Existing Classes List as before -- */}
+        {/* --- My Classes Section --- */}
         <div className={styles.classSectionContainer}>
           <section className={styles.classesSection}>
-            <h2 className={styles.sectionTitle}>All Upcoming Classes</h2>
-            {fetchingAll ? (
+            <h2 className={styles.sectionTitle}>My Classes</h2>
+            {/* Filters */}
+            <div className="tv-filtersRow">
+              <div className="tv-filterGroup">
+                <label className="tv-filterLabel">Date:</label>
+                <input
+                  type="date"
+                  className="tv-filterDateInput"
+                  value={filterDateMy}
+                  onChange={e => setFilterDateMy(e.target.value)}
+                  max="2099-12-31"
+                />
+              </div>
+              <div className="tv-filterGroup">
+                <label className="tv-filterLabel">Type:</label>
+                {/* THE SELECT FOR MY CLASSES */}
+                <CustomSelect
+                  options={[{ value: "", label: "All Types" }, ...classTypes.map(ct => ({ value: ct.id, label: ct.type }))]}
+                  value={filterTypeMy}
+                  onChange={setFilterTypeMy}
+                  placeholder="All Types"
+                />
+              </div>
+            </div>
+            {loadingMy ? (
               <div className={styles.loadingMsg}>Loading classes...</div>
-            ) : allUpcomingClasses.length === 0 ? (
+            ) : filterList(myClasses, filterDateMy, filterTypeMy).length === 0 ? (
               <div className={styles.noClassesMsg}>
-                No upcoming classes
+                You have no upcoming classes.
               </div>
             ) : (
               <div className={styles.classListHorizontal}>
-                {allUpcomingClasses.map(cls => (
-                  <div className={styles.classCard} key={cls.ClassID}>
-                    <div className={styles.classMainInfo}>
-                      <span className={styles.classType}>
-                        {cls.ClassTypeName || cls.ClassType || "Class"}
-                      </span>
-                      <span className={styles.classDateTime}>
-                        {toDisplayDate(cls.Schedule)} at {cls.time?.slice(0, 5)}
-                      </span>
-                    </div>
-                    <div className={styles.classTrainer}>
-                      Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
-                    </div>
-                    <div className={styles.classCountBox}>
-                      {/* Strict mapping! Show booked/max or fallback "?" */}
-                      {(typeof cls.bookedCount !== "undefined" && typeof cls.MaxParticipants !== "undefined")
-                        ? (
-                          <span>
-                            {cls.bookedCount}/{cls.MaxParticipants > 0 ? cls.MaxParticipants : "?"} booked
+                {filterList(myClasses, filterDateMy, filterTypeMy).map(cls => {
+                  const lbl = getUpcomingLabel(cls.Schedule, cls.time);
+                  const colorStyle = lbl ? getLabelColor(lbl) : {};
+                  return (
+                    <div className={styles.classCard} key={cls.ClassID}>
+                      <div className={styles.classMainInfo}>
+                        <span className={styles.classType}>
+                          {cls.ClassTypeName || cls.ClassType || "Class"}
+                        </span>
+                        <span className={styles.classDateTime}>
+                          {toDisplayDate(cls.Schedule)} at {cls.time?.slice(0, 5)}
+                        </span>
+                      </div>
+                      <div className={styles.classTrainer}>
+                        Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
+                      </div>
+                      <div className={styles.classCountBox}>
+                        {(typeof cls.Members !== "undefined" && typeof cls.MaxParticipants !== "undefined")
+                          ? (
+                            <span>
+                              {cls.Members.length}/{cls.MaxParticipants > 0 ? cls.MaxParticipants : "?"} booked
+                            </span>
+                          ) : (
+                            <span>?</span>
+                          )
+                        }
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "14px" }}>
+                        <button
+                          className="tv-wideBtn"
+                          onClick={() => openMembersModal(cls.Members)}
+                        >
+                          View Members
+                        </button>
+                        {lbl && (
+                          <span
+                            className="tv-labelBtn"
+                            style={colorStyle}
+                          >
+                            {lbl}
                           </span>
-                        ) : (
-                          <span>?</span>
-                        )
-                      }
+                        )}
+                      </div>
                     </div>
-                    {(() => {
-                      const lbl = getUpcomingLabel(cls.Schedule, cls.time);
-                      if (!lbl) return null;
-                      return <span className={styles.upcomingLabel}>{lbl}</span>;
-                    })()}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </section>
         </div>
+
+        {/* --- All Upcoming Classes Section (others) --- */}
+        <div className={styles.classSectionContainer}>
+          <section className={styles.classesSection}>
+            <h2 className={styles.sectionTitle}>All Upcoming Classes</h2>
+            {/* Filters */}
+            <div className="tv-filtersRow">
+              <div className="tv-filterGroup">
+                <label className="tv-filterLabel">Date:</label>
+                <input
+                  type="date"
+                  className="tv-filterDateInput"
+                  value={filterDateAll}
+                  onChange={e => setFilterDateAll(e.target.value)}
+                  max="2099-12-31"
+                />
+              </div>
+              <div className="tv-filterGroup">
+                <label className="tv-filterLabel">Type:</label>
+                {/* THE SELECT FOR UPCOMING CLASSES */}
+                <CustomSelect
+                  options={[{ value: "", label: "All Types" }, ...classTypes.map(ct => ({ value: ct.id, label: ct.type }))]}
+                  value={filterTypeAll}
+                  onChange={setFilterTypeAll}
+                  placeholder="All Types"
+                />
+              </div>
+            </div>
+            {loadingAll ? (
+              <div className={styles.loadingMsg}>Loading classes...</div>
+            ) : filterList(allUpcomingClasses, filterDateAll, filterTypeAll).length === 0 ? (
+              <div className={styles.noClassesMsg}>
+                No upcoming classes.
+              </div>
+            ) : (
+              <div className={styles.classListHorizontal}>
+                {filterList(allUpcomingClasses, filterDateAll, filterTypeAll).map(cls => {
+                  const lbl = getUpcomingLabel(cls.Schedule, cls.time);
+                  const colorStyle = lbl ? getLabelColor(lbl) : {};
+                  return (
+                    <div className={styles.classCard} key={cls.ClassID}>
+                      <div className={styles.classMainInfo}>
+                        <span className={styles.classType}>
+                          {cls.ClassTypeName || cls.ClassType || "Class"}
+                        </span>
+                        <span className={styles.classDateTime}>
+                          {toDisplayDate(cls.Schedule)} at {cls.time?.slice(0, 5)}
+                        </span>
+                      </div>
+                      <div className={styles.classTrainer}>
+                        Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
+                      </div>
+                      <div className={styles.classCountBox}>
+                        {(typeof cls.bookedCount !== "undefined" && typeof cls.MaxParticipants !== "undefined")
+                          ? (
+                            <span>
+                              {cls.bookedCount}/{cls.MaxParticipants > 0 ? cls.MaxParticipants : "?"} booked
+                            </span>
+                          ) : (
+                            <span>?</span>
+                          )
+                        }
+                      </div>
+                      {lbl && (
+                        <span
+                          className="tv-labelBtn"
+                          style={colorStyle}
+                        >
+                          {lbl}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+
+        {/* MEMBERS MODAL */}
+        {modalOpen && (
+          <div className="tv-popupBackdrop" onClick={closeModal}>
+            <div
+              className="tv-membersModal"
+              onClick={e => e.stopPropagation()}
+            >
+              <button className="tv-membersClose" onClick={closeModal}>
+                &times;
+              </button>
+              <div className="tv-membersModalTitle">Class Members</div>
+              {selectedMembers && selectedMembers.length > 0 ? (
+                <table className="tv-membersTable">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedMembers.map((m, i) => (
+                      <tr key={i}>
+                        <td>
+                          {m.FirstName} {m.LastName}
+                        </td>
+                        <td>{m.Email}</td>
+                        <td>{m.Phone}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <table className="tv-membersTable">
+                  <tbody>
+                    <tr>
+                      <td colSpan={3}>No members booked</td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
       </main>
       <Footer />
       <ProfileModal

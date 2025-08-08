@@ -21,6 +21,7 @@ import Classes from "../components/ClassesInformation/Classes";
 import RenewMembership from "../pages/RenewMembership/RenewMembership";
 import MyClasses from "../pages/TrainerView/MyClasses";
 import MyBookedClasses from "../pages/MemberView/MyBookedClasses";
+import About from "../components/About/About";
 function MyRoutes({ user, setUser }) {
   return (
     <Routes>
@@ -33,6 +34,7 @@ function MyRoutes({ user, setUser }) {
       <Route path="/member" element={<MemberView user={user} setUser={setUser} />} />
       <Route path="/user" element={<UserView user={user} setUser={setUser} />} />
       <Route path="/classes" element={<Classes user={user} setUser={setUser} />} />
+      <Route path="/about" element={<About user={user} setUser={setUser} />} />
       <Route path="/register-membership" element={<RegisterMembership user={user} setUser={setUser} />} />
       <Route path="/book-class" element={<BookView user={user} setUser={setUser} />} />
       <Route path="/membership" element={<MyMemberShip user={user} setUser={setUser} />} /> 

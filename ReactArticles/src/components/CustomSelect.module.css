@@ -1,0 +1,124 @@
+.filterDateInput {
+    width: 270px;
+    padding: 1.1rem 1.2rem;
+    border-radius: 13px;
+    border: none;
+    background: #20232a;
+    color: #eee;
+    font-size: 1.25rem;
+    font-weight: 500;
+    outline: none;
+    box-sizing: border-box;
+    height: 48px;
+    box-shadow: 0 0 0 0 transparent;
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .filterDateInput::placeholder {
+    color: #5BBAFF;
+  }
+  
+  .filterDateInput:focus {
+    border: 2px solid #5BBAFF;
+    box-shadow: 0 0 0 2px #5BBAFF;
+  }
+  /* Container control */
+.custom-select__control {
+    width: 270px;
+    height: 61px;
+    min-height: 61px;
+    padding: 16px 19px;
+    background-color: #20232a;
+    border-radius: 13px;
+    border: 1px solid #333;
+    box-sizing: border-box;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 1.25rem;
+    color: #eee;
+    display: flex;
+    align-items: center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+  
+  .custom-select__control--is-focused {
+    border-color: #5bbaff;
+    box-shadow: 0 0 0 2px #5bbaff;
+  }
+  
+  /* Remove indicator separator */
+  .custom-select__indicator-separator {
+    display: none;
+  }
+  
+  /* Dropdown indicator and clear indicator */
+  .custom-select__dropdown-indicator,
+  .custom-select__clear-indicator {
+    color: #888;
+    padding: 4px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+    height: 61px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .custom-select__dropdown-indicator:hover,
+  .custom-select__clear-indicator:hover {
+    color: #5bbaff;
+  }
+  
+  /* Value container */
+  .custom-select__value-container {
+    height: 100%;
+    padding: 0;
+    display: flex;
+    align-items: center;
+  }
+  
+  /* Input field */
+  .custom-select__input {
+    margin: 0;
+    padding: 0;
+    height: auto;
+    line-height: 29px;
+  }
+  
+  /* Single value (selected option text) */
+  .custom-select__single-value {
+    color: #5bbaff;
+    font-weight: 500;
+    font-size: 1.25rem;
+    line-height: 29px;
+  }
+  
+  /* Placeholder text */
+  .custom-select__placeholder {
+    color: #5bbaff;
+    font-size: 1.25rem;
+    line-height: 29px;
+  }
+  
+  /* Menu dropdown */
+  .custom-select__menu {
+    background-color: #232427;
+    border-radius: 10px;
+    margin-top: 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 9999;
+  }
+  
+  /* Options inside menu */
+  .custom-select__option {
+    padding: 8px 12px;
+    cursor: pointer;
+    color: #eee;
+    background-color: transparent;
+  }
+  
+  .custom-select__option--is-focused {
+    background-color: #5bbaff;
+    color: #232427;
+  }
+  

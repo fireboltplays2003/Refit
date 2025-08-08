@@ -399,7 +399,7 @@ router.get("/classes-with-members", (req, res) => {
   }
 
   const trainerId = user.UserID;
-
+  
   // 1. Fetch all classes for this trainer, including MaxParticipants
   const sqlClasses = `
     SELECT
@@ -408,7 +408,8 @@ router.get("/classes-with-members", (req, res) => {
       ct.type AS ClassTypeName,
       c.Schedule,
       c.time,
-      ct.MaxParticipants
+      ct.MaxParticipants,
+      c.TrainerID
     FROM classes c
     JOIN class_types ct ON c.ClassType = ct.id
     WHERE c.TrainerID = ?

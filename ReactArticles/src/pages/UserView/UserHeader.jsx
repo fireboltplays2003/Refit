@@ -26,6 +26,7 @@ export default function UserHeader({ user, onProfile, setUser }) {
           <NavLink className={styles.link} to="/user">Home</NavLink>
           <NavLink className={styles.link} to="/register-membership">Register Membership</NavLink>
           <NavLink className={styles.link} to="/classes">Classes</NavLink>
+          <NavLink className={styles.link} to="/about">About</NavLink>
         </nav>
       </div>
       <div className={styles.rightSection}>
