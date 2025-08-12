@@ -466,5 +466,51 @@ router.get("/classes-with-members", (req, res) => {
     });
   });
 });
+router.get("/stats", (req, res) => {
+  const user = req.session.user;
+  if (!user || user.Role !== "trainer") {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+  const trainerId = user.UserID;
+
+  const sqlTopType = `
+    SELECT ct.id, ct.type
+    FROM classes c
+    JOIN class_types ct ON ct.id = c.ClassType
+    LEFT JOIN members_classes mc ON mc.ClassID = c.ClassID
+    WHERE c.TrainerID = ?
+    GROUP BY ct.id, ct.type
+    ORDER BY COUNT(mc.MemberID) DESC, ct.type ASC
+    LIMIT 1
+  `;
+
+  const sqlTopTimes = `
+    SELECT DATE_FORMAT(c.time, '%H:%i') AS class_time
+    FROM classes c
+    LEFT JOIN members_classes mc ON mc.ClassID = c.ClassID
+    WHERE c.TrainerID = ?
+    GROUP BY class_time
+    HAVING class_time IS NOT NULL
+    ORDER BY COUNT(mc.MemberID) DESC, class_time ASC
+    LIMIT 3
+  `;
+
+  db.query(sqlTopType, [trainerId], (err1, rowsType) => {
+    if (err1) {
+      console.error("Error fetching top type:", err1);
+      return res.status(500).json({ error: "Database error" });
+    }
+    db.query(sqlTopTimes, [trainerId], (err2, rowsTimes) => {
+      if (err2) {
+        console.error("Error fetching top times:", err2);
+        return res.status(500).json({ error: "Database error" });
+      }
+      const topType = rowsType && rowsType[0] ? rowsType[0] : null;
+      const topTimes = (rowsTimes || []).map(r => r.class_time);
+      res.json({ topType, topTimes });
+    });
+  });
+});
+
 
 module.exports = router;

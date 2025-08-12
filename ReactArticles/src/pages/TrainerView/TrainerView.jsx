@@ -5,8 +5,7 @@ import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
 import axios from "axios";
 import styles from "./TrainerView.module.css";
-import CustomSelect from "../../components/CustomSelect"; // Adjust path accordingly
-
+import LightSelect from "../../components/LightSelect";
 
 const images = [
   "/img/img1.jpg",
@@ -14,17 +13,17 @@ const images = [
   "/img/img3.jpg",
   "/img/img4.jpg",
   "/img/img5.jpg",
-  "/img/membershipImage.png"
+  "/img/membershipImage.png",
 ];
 
 function toDisplayDate(isoDate) {
   if (!isoDate) return "";
   try {
     const date = new Date(isoDate);
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    const d = String(date.getDate()).padStart(2, "0");
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const y = date.getFullYear();
+    return `${d}/${m}/${y}`;
   } catch {
     return "Invalid date";
   }
@@ -32,63 +31,50 @@ function toDisplayDate(isoDate) {
 
 function getUpcomingLabel(classDate, classTime) {
   const now = new Date();
-  const todayY = now.getFullYear();
-  const todayM = now.getMonth();
-  const todayD = now.getDate();
-
   const classDateTime = new Date(classDate + "T" + (classTime || "00:00"));
-  const classY = classDateTime.getFullYear();
-  const classM = classDateTime.getMonth();
-  const classD = classDateTime.getDate();
 
-  function getWeekNumber(d) {
+  function weekNo(d) {
     d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-    var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-    var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
-    return weekNo;
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
   }
-  const nowWeek = getWeekNumber(now);
-  const classWeek = getWeekNumber(classDateTime);
 
-  if (todayY === classY && todayM === classM && todayD === classD) {
-    return "Today";
-  } else if (
-    classY === todayY &&
-    classWeek === nowWeek &&
-    classDateTime > now
-  ) {
+  const sameDay =
+    now.getFullYear() === classDateTime.getFullYear() &&
+    now.getMonth() === classDateTime.getMonth() &&
+    now.getDate() === classDateTime.getDate();
+
+  if (sameDay) return "Today";
+
+  const wNow = weekNo(now);
+  const wCls = weekNo(classDateTime);
+
+  if (classDateTime > now && wNow === wCls) {
     const diffDays = Math.floor((classDateTime - now) / (1000 * 60 * 60 * 24));
-    if (diffDays < 3) return "in 3 days";
-    return "This Week";
-  } else if (
-    (classY === todayY && classWeek === nowWeek + 1) ||
-    (classY === todayY + 1 && nowWeek === 52 && classWeek === 1)
-  ) {
-    return "Next Week";
-  } else if (
-    (classY > todayY) ||
-    (classY === todayY && classM > todayM + 1)
-  ) {
-    return "Next Month";
+    return diffDays < 3 ? "in 3 days" : "This Week";
   }
+  if (
+    (classDateTime.getFullYear() === now.getFullYear() && wCls === wNow + 1) ||
+    (now.getFullYear() + 1 === classDateTime.getFullYear() && wNow === 52 && wCls === 1)
+  ) return "Next Week";
+
+  if (
+    classDateTime.getFullYear() > now.getFullYear() ||
+    (classDateTime.getFullYear() === now.getFullYear() && classDateTime.getMonth() > now.getMonth() + 1)
+  ) return "Next Month";
+
   return null;
 }
 
 function getLabelColor(lbl) {
   switch (lbl) {
-    case "Today":
-      return { background: "#93ef87", color: "#1a3120" };
-    case "in 3 days":
-      return { background: "#ffd966", color: "#715700" };
-    case "This Week":
-      return { background: "#6ea8ff", color: "#223366" };
-    case "Next Week":
-      return { background: "#ffcf67", color: "#715700" };
-    case "Next Month":
-      return { background: "#b6b9c5", color: "#353942" };
-    default:
-      return { background: "#e0e0e0", color: "#333" };
+    case "Today": return { background: "#93ef87", color: "#1a3120" };
+    case "in 3 days": return { background: "#ffd966", color: "#715700" };
+    case "This Week": return { background: "#6ea8ff", color: "#223366" };
+    case "Next Week": return { background: "#ffcf67", color: "#715700" };
+    case "Next Month": return { background: "#b6b9c5", color: "#353942" };
+    default: return { background: "#e0e0e0", color: "#333" };
   }
 }
 
@@ -98,20 +84,24 @@ export default function TrainerView({ user, setUser }) {
   const [bgIndex, setBgIndex] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
 
-  // My Classes (with members)
-  const [myClasses, setMyClasses] = useState([]);
-  const [loadingMy, setLoadingMy] = useState(true);
+  // Filters + data
+  const [classTypes, setClassTypes] = useState([]);
   const [filterDateMy, setFilterDateMy] = useState("");
   const [filterTypeMy, setFilterTypeMy] = useState("");
-  const [classTypes, setClassTypes] = useState([]);
-
-  // All Upcoming Classes (count, not including self)
-  const [allUpcomingClasses, setAllUpcomingClasses] = useState([]);
-  const [loadingAll, setLoadingAll] = useState(true);
   const [filterDateAll, setFilterDateAll] = useState("");
   const [filterTypeAll, setFilterTypeAll] = useState("");
 
-  // Members Modal
+  const [myClasses, setMyClasses] = useState([]);
+  const [loadingMy, setLoadingMy] = useState(true);
+
+  const [allUpcomingClasses, setAllUpcomingClasses] = useState([]);
+  const [loadingAll, setLoadingAll] = useState(true);
+
+  // Trainer Insights (top-right)
+  const [statsLoading, setStatsLoading] = useState(true);
+  const [stats, setStats] = useState({ topType: null, topTimes: [] });
+
+  // Members modal
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState([]);
 
@@ -123,75 +113,81 @@ export default function TrainerView({ user, setUser }) {
     }
   }, [user, navigate]);
 
-  // BG animation
   useEffect(() => {
-    const interval = setInterval(() => {
-      setBgIndex(prev => (prev + 1) % images.length);
-    }, 5000);
-    return () => clearInterval(interval);
+    const id = setInterval(() => setBgIndex((n) => (n + 1) % images.length), 5000);
+    return () => clearInterval(id);
   }, []);
 
-  // Fetch class types (for filters)
+  // Load class types for filters
   useEffect(() => {
-    axios
-      .get("/trainer/class-types", { withCredentials: true })
+    axios.get("/trainer/class-types", { withCredentials: true })
       .then(res => setClassTypes(res.data || []))
       .catch(() => setClassTypes([]));
   }, []);
 
-  // Fetch My Classes (with members)
+  // Load Trainer Insights (scoped to this trainer)
   useEffect(() => {
-    if (!user || !user.UserID) return;
+    if (!authorized) return;
+    setStatsLoading(true);
+    axios.get("/trainer/stats", { withCredentials: true })
+      .then(res => setStats({
+        topType: res.data?.topType || null,
+        topTimes: res.data?.topTimes || []
+      }))
+      .catch(() => setStats({ topType: null, topTimes: [] }))
+      .finally(() => setStatsLoading(false));
+  }, [authorized]);
+
+  // Load "My Classes" (with members)
+  useEffect(() => {
+    if (!user?.UserID) return;
     setLoadingMy(true);
-    axios
-      .get("/trainer/classes-with-members", { withCredentials: true })
+    axios.get("/trainer/classes-with-members", { withCredentials: true })
       .then(res => {
         const now = new Date();
         const sorted = (res.data || [])
-          .filter(cls => {
-            const dt = new Date(cls.Schedule + "T" + (cls.time || "00:00"));
-            return cls.TrainerID === user.UserID && dt >= now;
+          .filter(c => {
+            const dt = new Date(c.Schedule + "T" + (c.time || "00:00"));
+            return c.TrainerID === user.UserID && dt >= now;
           })
-          .sort((a, b) => new Date(a.Schedule + "T" + (a.time || "00:00")) - new Date(b.Schedule + "T" + (b.time || "00:00")));
+          .sort((a, b) =>
+            new Date(a.Schedule + "T" + (a.time || "00:00")) -
+            new Date(b.Schedule + "T" + (b.time || "00:00"))
+          );
         setMyClasses(sorted);
-        setLoadingMy(false);
       })
-      .catch(() => {
-        setMyClasses([]);
-        setLoadingMy(false);
-      });
+      .catch(() => setMyClasses([]))
+      .finally(() => setLoadingMy(false));
   }, [user]);
 
-  // Fetch All Upcoming Classes (count only, not including self)
+  // Load "All Upcoming Classes" (not mine)
   useEffect(() => {
-    if (!user || !user.UserID) return;
+    if (!user?.UserID) return;
     setLoadingAll(true);
-    axios
-      .get("/trainer/all-upcoming-classes-with-count", { withCredentials: true })
+    axios.get("/trainer/all-upcoming-classes-with-count", { withCredentials: true })
       .then(res => {
         const now = new Date();
-        const all = (res.data || [])
-          .filter(cls => {
-            const dt = new Date(cls.Schedule + "T" + (cls.time || "00:00"));
-            return cls.TrainerID !== user.UserID && dt >= now;
+        const list = (res.data || [])
+          .filter(c => {
+            const dt = new Date(c.Schedule + "T" + (c.time || "00:00"));
+            return c.TrainerID !== user.UserID && dt >= now;
           })
-          .sort((a, b) => new Date(a.Schedule + "T" + (a.time || "00:00")) - new Date(b.Schedule + "T" + (b.time || "00:00")));
-        setAllUpcomingClasses(all);
-        setLoadingAll(false);
+          .sort((a, b) =>
+            new Date(a.Schedule + "T" + (a.time || "00:00")) -
+            new Date(b.Schedule + "T" + (b.time || "00:00"))
+          );
+        setAllUpcomingClasses(list);
       })
-      .catch(() => {
-        setAllUpcomingClasses([]);
-        setLoadingAll(false);
-      });
+      .catch(() => setAllUpcomingClasses([]))
+      .finally(() => setLoadingAll(false));
   }, [user]);
 
-  // Filter logic (matches your MyClasses.jsx)
   function filterList(list, date, type) {
-    return list.filter(cls => {
-      let match = true;
-      if (date) match = match && cls.Schedule === date;
-      if (type) match = match && String(cls.ClassType) === String(type);
-      return match;
+    return list.filter(c => {
+      let ok = true;
+      if (date) ok = ok && c.Schedule === date;
+      if (type) ok = ok && String(c.ClassType) === String(type);
+      return ok;
     });
   }
 
@@ -208,207 +204,94 @@ export default function TrainerView({ user, setUser }) {
 
   return (
     <div className={styles.bgWrapper}>
-      <style>{`
-        .tv-popupBackdrop {
-          position: fixed;
-          inset: 0;
-          z-index: 3000;
-          background: rgba(0,0,0,0.35);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        .tv-membersModal {
-          background: #232427;
-          border-radius: 18px;
-          box-shadow: 0 6px 36px 0 #0009;
-          padding: 32px 32px 28px 32px;
-          width: 580px;
-          max-width: 98vw;
-          min-width: 380px;
-          margin: 0 auto;
-          position: fixed;
-          left: 50%;
-          top: 50%;
-          transform: translate(-50%, -60%);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          z-index: 4000;
-        }
-        .tv-membersModalTitle {
-          color: #6ea8ff;
-          text-align: center;
-          font-size: 2rem;
-          font-weight: 700;
-          margin-bottom: 18px;
-        }
-        .tv-membersClose {
-          position: absolute;
-          right: 20px;
-          top: 18px;
-          font-size: 2.1rem;
-          cursor: pointer;
-          color: #eee;
-          background: none;
-          border: none;
-        }
-        .tv-membersTable {
-          width: 100%;
-          border-collapse: separate;
-          border-spacing: 0;
-          background: none;
-          margin-top: 6px;
-          font-size: 1.07rem;
-        }
-        .tv-membersTable th, .tv-membersTable td {
-          padding: 10px 7px;
-          text-align: left;
-        }
-        .tv-membersTable th {
-          color: #6ea8ff;
-          font-size: 1.12rem;
-          font-weight: 700;
-          border-bottom: 2px solid #32343a;
-        }
-        .tv-membersTable td {
-          border-bottom: 1px solid #2a2a2a;
-          color: #f0f0f0;
-          word-break: break-all;
-        }
-        .tv-membersTable td[colspan] {
-          text-align: center;
-          color: #bbb;
-          padding: 24px 0 10px 0;
-          font-size: 1.13rem;
-        }
-        .tv-wideBtn {
-          width: 100%;
-          font-size: 1.09rem;
-          font-weight: 700;
-          padding: 7px 0;
-          border-radius: 8px;
-          background: #6ea8ff;
-          color: #232427;
-          border: none;
-          margin: 0 0 6px 0;
-          cursor: pointer;
-          display: block;
-          text-align: center;
-          transition: background 0.13s;
-        }
-        .tv-wideBtn:hover {
-          background: #8dcaff;
-        }
-        .tv-labelBtn {
-          width: 100%;
-          font-size: 1.09rem;
-          font-weight: 700;
-          padding: 7px 0;
-          border-radius: 8px;
-          border: none;
-          margin: 0 0 6px 0;
-          display: block;
-          text-align: center;
-          pointer-events: none;
-        }
-        .tv-welcomeContainer {
-          width: 100%;
-          display: flex;
-          flex-direction: column;
-          align-items: flex-start;
-          margin: 0 0 32px 0;
-          padding-left: 14px;
-        }
-        .tv-welcomeTitle {
-          font-size: 2rem;
-          font-weight: 800;
-          color: #6ea8ff;
-          margin-bottom: 3px;
-          letter-spacing: 0.2px;
-        }
-        .tv-highlight {
-          color: #ffcf67;
-        }
-        .tv-welcomeText {
-          font-size: 1.11rem;
-          color: #bbb;
-          margin-bottom: 4px;
-        }
-        .tv-filtersRow {
-          display: flex;
-          gap: 20px;
-          margin-bottom: 18px;
-        }
-        .tv-filterGroup {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-        }
-        .tv-filterLabel {
-          color: #6ea8ff;
-          font-weight: 600;
-          font-size: 1rem;
-          margin-right: 3px;
-        }
-        .tv-filterDateInput, .tv-filterTypeSelect {
-          background: #20232a;
-          border: 1px solid #333;
-          color: #eee;
-          border-radius: 7px;
-          padding: 4px 8px;
-        }
-      `}</style>
-      {images.map((img, idx) => (
+      {images.map((img, i) => (
         <div
-          key={idx}
+          key={i}
           className={styles.bgImg}
           style={{
             backgroundImage: `url(${img})`,
-            opacity: bgIndex === idx ? 1 : 0,
+            opacity: bgIndex === i ? 1 : 0,
             zIndex: 1,
-            transition: "opacity 1.2s"
+            transition: "opacity 1.2s",
           }}
         />
       ))}
       <div className={styles.overlay} />
-      <TrainerHeader
-        trainer={user}
-        setTrainer={setUser}
-        onProfile={() => setShowProfile(true)}
-      />
+
+      <TrainerHeader trainer={user} setTrainer={setUser} onProfile={() => setShowProfile(true)} />
 
       <main className={styles.mainContent}>
-        {/* --- Welcome message at top --- */}
-        <div className="tv-welcomeContainer">
-          <h1 className="tv-welcomeTitle">
-            Welcome Back, <span className="tv-highlight">{`${user?.FirstName || ""} ${user?.LastName || ""}`}</span>!
-          </h1>
-          <p className="tv-welcomeText">
-            Here is your dashboard. You can manage your classes, and more.
-          </p>
+        {/* Top row: welcome + insights */}
+        <div className={styles.flexRow}>
+          <div className={styles.welcomeContainer}>
+            <div className={styles.welcomeInner}>
+              <h1 className={styles.welcomeTitle}>
+                Welcome Back, <span className={styles.welcomeHighlight}>
+                  {`${user?.FirstName || ""} ${user?.LastName || ""}`}
+                </span>!
+              </h1>
+              <p className={styles.welcomeText}>
+                Here is your dashboard. You can manage your classes, and more.
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.upcomingCard}>
+            {statsLoading ? (
+              <>
+                <div className={styles.upcomingTitle}>Loading insights…</div>
+                <div className={styles.upcomingUnderline} />
+              </>
+            ) : (
+              <>
+                <div className={styles.upcomingTitle}>Trainer Insights</div>
+                <div className={styles.upcomingUnderline} />
+                <ul className={styles.upcomingList}>
+                  <li className={styles.upcomingItem}>
+                    <span className={styles.upcomingType}>Top Class Type</span>
+                    <span className={styles.upcomingMembers}>
+                      {stats.topType?.type || "-"}
+                    </span>
+                  </li>
+                  <li className={styles.upcomingItem}>
+                    <span className={styles.upcomingType}>Top Class Times</span>
+                    <span className={styles.upcomingMembers}>
+                      {Array.isArray(stats.topTimes) && stats.topTimes.length
+                        ? stats.topTimes
+                            .map(t => (typeof t === "string" ? t : t?.time))
+                            .filter(Boolean)
+                            .join(", ")
+                        : "-"}
+                    </span>
+                  </li>
+                </ul>
+              </>
+            )}
+          </div>
         </div>
 
-        {/* --- My Classes Section --- */}
+        {/* My Classes */}
         <div className={styles.classSectionContainer}>
           <section className={styles.classesSection}>
             <h2 className={styles.sectionTitle}>My Classes</h2>
-            {/* Filters */}
-            <div className="tv-filtersRow">
-              <div className="tv-filterGroup">
-                <label className="tv-filterLabel">Date:</label>
+
+            <div className={styles.filtersRow}>
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>Date:</label>
                 <input
                   type="date"
-                  className="tv-filterDateInput"
+                  className={styles.filterDateInput}
                   value={filterDateMy}
-                  onChange={e => setFilterDateMy(e.target.value)}
+                  onChange={(e) => setFilterDateMy(e.target.value)}
                   max="2099-12-31"
                 />
               </div>
-              <div className="tv-filterGroup">
-                <label className="tv-filterLabel">Type:</label>
-                {/* THE SELECT FOR MY CLASSES */}
-                <CustomSelect
+
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>Type:</label>
+                <LightSelect
+                  className={styles.selectInline}
+                  width={270}
                   options={[{ value: "", label: "All Types" }, ...classTypes.map(ct => ({ value: ct.id, label: ct.type }))]}
                   value={filterTypeMy}
                   onChange={setFilterTypeMy}
@@ -416,15 +299,14 @@ export default function TrainerView({ user, setUser }) {
                 />
               </div>
             </div>
+
             {loadingMy ? (
               <div className={styles.loadingMsg}>Loading classes...</div>
             ) : filterList(myClasses, filterDateMy, filterTypeMy).length === 0 ? (
-              <div className={styles.noClassesMsg}>
-                You have no upcoming classes.
-              </div>
+              <div className={styles.noClassesMsg}>You have no upcoming classes.</div>
             ) : (
               <div className={styles.classListHorizontal}>
-                {filterList(myClasses, filterDateMy, filterTypeMy).map(cls => {
+                {filterList(myClasses, filterDateMy, filterTypeMy).map((cls) => {
                   const lbl = getUpcomingLabel(cls.Schedule, cls.time);
                   const colorStyle = lbl ? getLabelColor(lbl) : {};
                   return (
@@ -441,28 +323,20 @@ export default function TrainerView({ user, setUser }) {
                         Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
                       </div>
                       <div className={styles.classCountBox}>
-                        {(typeof cls.Members !== "undefined" && typeof cls.MaxParticipants !== "undefined")
-                          ? (
-                            <span>
-                              {cls.Members.length}/{cls.MaxParticipants > 0 ? cls.MaxParticipants : "?"} booked
-                            </span>
-                          ) : (
-                            <span>?</span>
-                          )
-                        }
+                        {typeof cls.Members !== "undefined" && typeof cls.MaxParticipants !== "undefined" ? (
+                          <span>
+                            {cls.Members.length}/{cls.MaxParticipants > 0 ? cls.MaxParticipants : "?"} booked
+                          </span>
+                        ) : (
+                          <span>?</span>
+                        )}
                       </div>
                       <div style={{ display: "flex", flexDirection: "column", gap: "14px", marginTop: "14px" }}>
-                        <button
-                          className="tv-wideBtn"
-                          onClick={() => openMembersModal(cls.Members)}
-                        >
+                        <button className={styles.wideBtn} onClick={() => openMembersModal(cls.Members)}>
                           View Members
                         </button>
                         {lbl && (
-                          <span
-                            className="tv-labelBtn"
-                            style={colorStyle}
-                          >
+                          <span className={styles.labelBtn} style={colorStyle}>
                             {lbl}
                           </span>
                         )}
@@ -475,26 +349,28 @@ export default function TrainerView({ user, setUser }) {
           </section>
         </div>
 
-        {/* --- All Upcoming Classes Section (others) --- */}
+        {/* All Upcoming Classes */}
         <div className={styles.classSectionContainer}>
           <section className={styles.classesSection}>
             <h2 className={styles.sectionTitle}>All Upcoming Classes</h2>
-            {/* Filters */}
-            <div className="tv-filtersRow">
-              <div className="tv-filterGroup">
-                <label className="tv-filterLabel">Date:</label>
+
+            <div className={styles.filtersRow}>
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>Date:</label>
                 <input
                   type="date"
-                  className="tv-filterDateInput"
+                  className={styles.filterDateInput}
                   value={filterDateAll}
-                  onChange={e => setFilterDateAll(e.target.value)}
+                  onChange={(e) => setFilterDateAll(e.target.value)}
                   max="2099-12-31"
                 />
               </div>
-              <div className="tv-filterGroup">
-                <label className="tv-filterLabel">Type:</label>
-                {/* THE SELECT FOR UPCOMING CLASSES */}
-                <CustomSelect
+
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>Type:</label>
+                <LightSelect
+                  className={styles.selectInline}
+                  width={270}
                   options={[{ value: "", label: "All Types" }, ...classTypes.map(ct => ({ value: ct.id, label: ct.type }))]}
                   value={filterTypeAll}
                   onChange={setFilterTypeAll}
@@ -502,15 +378,14 @@ export default function TrainerView({ user, setUser }) {
                 />
               </div>
             </div>
+
             {loadingAll ? (
               <div className={styles.loadingMsg}>Loading classes...</div>
             ) : filterList(allUpcomingClasses, filterDateAll, filterTypeAll).length === 0 ? (
-              <div className={styles.noClassesMsg}>
-                No upcoming classes.
-              </div>
+              <div className={styles.noClassesMsg}>No upcoming classes.</div>
             ) : (
               <div className={styles.classListHorizontal}>
-                {filterList(allUpcomingClasses, filterDateAll, filterTypeAll).map(cls => {
+                {filterList(allUpcomingClasses, filterDateAll, filterTypeAll).map((cls) => {
                   const lbl = getUpcomingLabel(cls.Schedule, cls.time);
                   const colorStyle = lbl ? getLabelColor(lbl) : {};
                   return (
@@ -527,21 +402,16 @@ export default function TrainerView({ user, setUser }) {
                         Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
                       </div>
                       <div className={styles.classCountBox}>
-                        {(typeof cls.bookedCount !== "undefined" && typeof cls.MaxParticipants !== "undefined")
-                          ? (
-                            <span>
-                              {cls.bookedCount}/{cls.MaxParticipants > 0 ? cls.MaxParticipants : "?"} booked
-                            </span>
-                          ) : (
-                            <span>?</span>
-                          )
-                        }
+                        {typeof cls.bookedCount !== "undefined" && typeof cls.MaxParticipants !== "undefined" ? (
+                          <span>
+                            {cls.bookedCount}/{cls.MaxParticipants > 0 ? cls.MaxParticipants : "?"} booked
+                          </span>
+                        ) : (
+                          <span>?</span>
+                        )}
                       </div>
                       {lbl && (
-                        <span
-                          className="tv-labelBtn"
-                          style={colorStyle}
-                        >
+                        <span className={styles.labelBtn} style={colorStyle}>
                           {lbl}
                         </span>
                       )}
@@ -553,32 +423,23 @@ export default function TrainerView({ user, setUser }) {
           </section>
         </div>
 
-        {/* MEMBERS MODAL */}
+        {/* Members Modal */}
         {modalOpen && (
-          <div className="tv-popupBackdrop" onClick={closeModal}>
-            <div
-              className="tv-membersModal"
-              onClick={e => e.stopPropagation()}
-            >
-              <button className="tv-membersClose" onClick={closeModal}>
-                &times;
-              </button>
-              <div className="tv-membersModalTitle">Class Members</div>
+          <div className={styles.popupBackdrop} onClick={closeModal}>
+            <div className={styles.membersModal} onClick={(e) => e.stopPropagation()}>
+              <button className={styles.membersClose} onClick={closeModal}>&times;</button>
+              <div className={styles.membersModalTitle}>Class Members</div>
               {selectedMembers && selectedMembers.length > 0 ? (
-                <table className="tv-membersTable">
+                <table className={styles.membersTable}>
                   <thead>
                     <tr>
-                      <th>Name</th>
-                      <th>Email</th>
-                      <th>Phone</th>
+                      <th>Name</th><th>Email</th><th>Phone</th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedMembers.map((m, i) => (
                       <tr key={i}>
-                        <td>
-                          {m.FirstName} {m.LastName}
-                        </td>
+                        <td>{m.FirstName} {m.LastName}</td>
                         <td>{m.Email}</td>
                         <td>{m.Phone}</td>
                       </tr>
@@ -586,11 +447,9 @@ export default function TrainerView({ user, setUser }) {
                   </tbody>
                 </table>
               ) : (
-                <table className="tv-membersTable">
+                <table className={styles.membersTable}>
                   <tbody>
-                    <tr>
-                      <td colSpan={3}>No members booked</td>
-                    </tr>
+                    <tr><td colSpan={3}>No members booked</td></tr>
                   </tbody>
                 </table>
               )}
@@ -598,6 +457,7 @@ export default function TrainerView({ user, setUser }) {
           </div>
         )}
       </main>
+
       <Footer />
       <ProfileModal
         show={showProfile}

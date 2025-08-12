@@ -20,6 +20,129 @@ function toDisplayDate(isoDate) {
   }
 }
 
+/* ---------- Simple, self-contained dropdown (with scrolling + hover) ---------- */
+function SimpleDropdown({ value, onChange, options, placeholder = "-- All Types --" }) {
+  const [open, setOpen] = useState(false);
+  const [hoverIdx, setHoverIdx] = useState(-1);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    function onDocClick(e) {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const selectedLabel =
+    value && options.find(o => String(o.value) === String(value))?.label;
+
+  const uiBlue = "#6ea8ff";
+
+  const ui = {
+    wrap: {
+      position: "relative",
+      width: "100%",       // full-width control (long)
+      zIndex: 50,
+    },
+    control: {
+      width: "100%",
+      height: 56,
+      borderRadius: 14,
+      background: "#232a36",
+      border: "1px solid rgba(255,255,255,0.08)",
+      padding: "0 48px 0 22px",
+      fontSize: "1.1rem",
+      fontWeight: 600,
+      color: uiBlue,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      cursor: "pointer",
+      outline: "none",
+    },
+    caret: {
+      position: "absolute",
+      right: 16,
+      top: "50%",
+      transform: "translateY(-50%)",
+      borderLeft: "6px solid transparent",
+      borderRight: "6px solid transparent",
+      borderTop: `8px solid ${uiBlue}`,
+      pointerEvents: "none",
+    },
+    menu: {
+      position: "absolute",
+      left: 0,
+      top: "calc(100% + 6px)",
+      width: "100%",
+      background: "#232427",
+      border: "1px solid #2f3542",
+      borderRadius: 12,
+      boxShadow: "0 12px 28px rgba(0,0,0,0.45)",
+      maxHeight: 240,            // <-- forces scrolling
+      overflowY: "auto",
+    },
+    opt: (active, hovered) => ({
+      padding: "12px 16px",
+      cursor: "pointer",
+      fontSize: "1.1rem",
+      fontWeight: active ? 700 : 500,
+      background: active
+        ? uiBlue
+        : hovered
+          ? "#2b3246"
+          : "transparent",
+      color: active ? "#232427" : hovered ? "#e8eef8" : "#e8eef8",
+      transition: "background 120ms ease",
+    }),
+    placeholder: { color: uiBlue, fontSize: "1.1rem", fontWeight: 600 },
+  };
+
+  return (
+    <div ref={wrapRef} style={ui.wrap}>
+      <button
+        type="button"
+        style={ui.control}
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span style={!selectedLabel ? ui.placeholder : undefined}>
+          {selectedLabel || placeholder}
+        </span>
+      </button>
+      <span style={ui.caret} />
+      {open && (
+        <div style={ui.menu} role="listbox">
+          {options.map((o, i) => {
+            const active = String(o.value) === String(value);
+            const hovered = i === hoverIdx;
+            return (
+              <div
+                key={String(o.value)}
+                role="option"
+                aria-selected={active}
+                style={ui.opt(active, hovered)}
+                onMouseEnter={() => setHoverIdx(i)}
+                onMouseLeave={() => setHoverIdx(-1)}
+                onClick={() => {
+                  onChange(o.value);
+                  setOpen(false);
+                }}
+              >
+                {o.label}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+/* --------------------------------------------------------------------- */
+
 export default function BookView({ user, setUser }) {
   const [membershipType, setMembershipType] = useState("standard");
   const [classTypes, setClassTypes] = useState([]);
@@ -192,21 +315,36 @@ export default function BookView({ user, setUser }) {
       ? styles.basicAccent
       : styles.standardAccent;
 
+  // Build dropdown options
+  const typeOptions = [
+    { value: "", label: "-- All Types --" },
+    ...(classTypes || []).map(t => ({
+      value: t.type || t.ClassType || t.id,
+      label: t.type || t.ClassType || String(t.id)
+    })),
+  ];
+
   return (
     <>
       <MemberHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
       <div className={styles.bg}>
         <div className={styles.bgImage}></div>
         <div className={styles.overlay}></div>
-        <div className={`${styles.bookingContainer} ${accent}`}>
+
+        {/* Make sure menus are never clipped */}
+        <div className={`${styles.bookingContainer} ${accent}`} style={{ overflow: "visible", position: "relative", zIndex: 1 }}>
           <h2>Select a Class</h2>
+
           <label>Class Type:</label>
-          <select value={selectedType} onChange={e => setSelectedType(e.target.value)}>
-            <option value="">-- All Types --</option>
-            {classTypes.map(type => (
-              <option key={type.id} value={type.type}>{type.type}</option>
-            ))}
-          </select>
+          {/* Full-width, scrollable dropdown (no external CSS) */}
+          <div style={{ width: "100%", marginBottom: 12 }}>
+            <SimpleDropdown
+              value={selectedType}
+              onChange={setSelectedType}
+              options={typeOptions}
+              placeholder="-- All Types --"
+            />
+          </div>
 
           <label>Date:</label>
           <input
@@ -251,6 +389,7 @@ export default function BookView({ user, setUser }) {
           >
             Book with Class Credit
           </button>
+
           <div className={styles.paypalSection}>
             <h3>Or Pay with PayPal:</h3>
             <div
@@ -268,10 +407,12 @@ export default function BookView({ user, setUser }) {
               <p className={styles.paypalMsg}>Select a class to enable PayPal payment.</p>
             )}
           </div>
+
           {error && <p className={styles.errorMsg}>{error}</p>}
           {message && <p className={styles.successMsg}>{message}</p>}
         </div>
       </div>
+
       <Footer />
       <ProfileModal
         show={showProfile}

@@ -15,19 +15,13 @@ const images = [
   "/img/membershipImage.png"
 ];
 
-const testimonials = [
-  {
-    name: "Sami T.",
-    text: "Refit Gym changed my life. The trainers are motivating and the classes are always fun!",
-  },
-  {
-    name: "Maya L.",
-    text: "I love the flexibility and variety. I finally look forward to my workouts.",
-  },
-  {
-    name: "Omar D.",
-    text: "Best gym atmosphere. Clean, modern, and friendly staff!",
-  },
+const motivationQuotes = [
+  "The only bad workout is the one you didn't do.",
+  "Push yourself because no one else is going to do it for you.",
+  "Don’t stop when you’re tired, stop when you’re done.",
+  "A little progress each day adds up to big results.",
+  "Your body can stand almost anything. It’s your mind you have to convince.",
+  "Success starts with self-discipline."
 ];
 
 export default function UserView({ user, setUser }) {
@@ -112,27 +106,16 @@ export default function UserView({ user, setUser }) {
                 About Refit
               </button>
             </div>
-            <div className={styles.motivationCard}>
-              <FaQuoteLeft className={styles.motivationIcon} />
-              <div className={styles.motivationQuote}>
-                "The only bad workout is the one you didn't do."
+
+            {/* Motivation Quotes */}
+            {motivationQuotes.map((quote, i) => (
+              <div key={i} className={styles.motivationCard}>
+                <FaQuoteLeft className={styles.motivationIcon} />
+                <div className={styles.motivationQuote}>
+                  "{quote}"
+                </div>
               </div>
-            </div>
-            <div className={styles.testimonialSection}>
-              <div className={styles.testimonialTitle}>What Our Members Say</div>
-              <div className={styles.testimonialList}>
-                {testimonials.map((item, i) => (
-                  <div key={i} className={styles.testimonialCard}>
-                    <div className={styles.testimonialText}>
-                      "{item.text}"
-                    </div>
-                    <div className={styles.testimonialName}>
-                      — {item.name}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
           </section>
 
           {/* LEFT Panel: Why Choose Refit & CTA */}

@@ -1,3 +1,4 @@
+/* src/pages/member/MyBookedClasses.module.css */
 .bgWrapper {
   position: relative;
   min-height: 100vh;
@@ -29,7 +30,12 @@
   min-height: 82vh;
 }
 
-/* Filter row styling */
+/* Filters */
+:root { --f-h: 48px; --f-radius: 13px; }
+.typeGroup {
+  position: relative;
+  top: -9px; /* Moves both label and dropdown upward */
+}
 .filtersRow {
   display: flex;
   align-items: center;
@@ -49,24 +55,37 @@
   font-weight: 600;
   color: #fff;
   min-width: 60px;
+  height: var(--f-h);
+  display: inline-flex;
+  align-items: center;
 }
-.filterDateInput,
-.filterTypeSelect {
+
+/* Date input to match LightSelect height */
+.filterDateInput {
   width: 250px;
   max-width: 270px;
-  padding: 1.1rem 1.2rem;
-  border-radius: 13px;
-  border: none;
+  padding: 0 19px;
+  height: var(--f-h);
+  line-height: var(--f-h);
+  border-radius: var(--f-radius);
+  border: 1px solid #333;
   background: #232436;
   color: #69aaff;
   font-size: 1.25rem;
   font-weight: 500;
   outline: none;
-  transition: border 0.17s;
 }
-.filterDateInput:focus,
-.filterTypeSelect:focus {
-  border: 2px solid #6ea7ff;
+.filterDateInput:focus { box-shadow: 0 0 0 2px #6ea7ff; border-color: #6ea7ff; }
+.filterDateInput::-webkit-datetime-edit { padding: 0; }
+.filterDateInput::-webkit-calendar-picker-indicator { margin-left: 6px; }
+
+/* LightSelect alignment wrapper (same baseline as date input) */
+.selectInline {
+  height: var(--f-h);
+  display: inline-flex;
+  align-items: center;
+  margin-top: -2px; /* tiny nudge for exact baseline match on Windows */
+  z-index: 5;      /* keep menu above cards */
 }
 
 /* Tabs */
@@ -88,12 +107,9 @@
   transition: background 0.18s, color 0.18s;
   cursor: pointer;
 }
-.activeTab {
-  background: #ffcf67;
-  color: #23253b;
-}
+.activeTab { background: #ffcf67; color: #23253b; }
 
-/* Card wrapping the class list */
+/* Card */
 .card {
   width: 100%;
   max-width: 670px;
@@ -102,6 +118,7 @@
   box-shadow: 0 4px 28px #0008;
   padding: 30px 34px 20px 34px;
   margin: 0 auto 2.8rem auto;
+  overflow: visible; /* ensure dropdown is never clipped */
 }
 .title {
   font-size: 2.4rem;
@@ -110,7 +127,6 @@
   text-align: center;
   margin-bottom: 8px;
   letter-spacing: 0.5px;
-  position: relative;
 }
 .underline {
   width: 150px;
@@ -126,7 +142,7 @@
   padding: 32px 0;
 }
 
-/* Class List, Item, Row, etc */
+/* Class list */
 .classList {
   list-style: none;
   padding: 0;
@@ -138,17 +154,10 @@
   scrollbar-width: thin;
   scrollbar-color: #3c405f #26263a;
 }
-.classList::-webkit-scrollbar {
-  width: 10px;
-}
-.classList::-webkit-scrollbar-thumb {
-  background: #3c405f;
-  border-radius: 8px;
-}
-.classList::-webkit-scrollbar-track {
-  background: #26263a;
-  border-radius: 8px;
-}
+.classList::-webkit-scrollbar { width: 10px; }
+.classList::-webkit-scrollbar-thumb { background: #3c405f; border-radius: 8px; }
+.classList::-webkit-scrollbar-track { background: #26263a; border-radius: 8px; }
+
 .classItem {
   margin-bottom: 17px;
   padding-bottom: 20px;
@@ -176,19 +185,9 @@
   color: #fff;
   text-transform: capitalize;
 }
-.classDateTime {
-  font-size: 1rem;
-  color: #d2d8e3;
-  font-weight: 400;
-  letter-spacing: 0.1px;
-}
-.classTrainer {
-  font-size: 0.98rem;
-  color: #b0eaff;
-  font-weight: 400;
-  margin-top: 2px;
-  opacity: 0.93;
-}
+.classDateTime { font-size: 1rem; color: #d2d8e3; font-weight: 400; letter-spacing: .1px; }
+.classTrainer { font-size: .98rem; color: #b0eaff; font-weight: 400; margin-top: 2px; opacity: .93; }
+
 .classActions {
   display: flex;
   align-items: center;
@@ -196,12 +195,7 @@
   min-width: 0;
   padding-right: 6px;
 }
-.confirmMsg {
-  color: #5bbaff;
-  font-weight: 600;
-  font-size: 1.00rem;
-  margin-right: 8px;
-}
+.confirmMsg { color: #5bbaff; font-weight: 600; font-size: 1rem; margin-right: 8px; }
 .cancelBtn, .confirmBtn {
   padding: 7px 18px;
   font-size: 1rem;
@@ -211,36 +205,21 @@
   color: #fff;
   font-weight: 700;
   cursor: pointer;
-  transition: background 0.13s;
+  transition: background .13s;
   margin-left: 10px;
 }
-.cancelBtn:hover, .confirmBtn:hover {
-  background: #ff8377;
-}
+.cancelBtn:hover, .confirmBtn:hover { background: #ff8377; }
 
 /* Responsive */
 @media (max-width: 700px) {
-  .filtersRow {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-  }
-  .filterGroup {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.25rem;
-  }
-  .filterDateInput,
-  .filterTypeSelect {
-    width: 100%;
-    min-width: 0;
-    max-width: 100%;
-  }
+  .filtersRow { flex-direction: column; align-items: stretch; gap: 1rem; }
+  .filterGroup { flex-direction: column; align-items: stretch; gap: .25rem; }
+  .filterDateInput { width: 100%; min-width: 0; max-width: 100%; }
   .mainContent { padding-top: 15px; }
   .card { padding: 14px 3vw 13px 3vw; }
   .title { font-size: 1.38rem; }
   .underline { width: 66px; height: 4px; margin-bottom: 21px; }
 }
-
-/* Add any additional styles as needed for exact match */
-
+.filterGroup.typeGroup {
+  margin-top: -1px; /* Moves label + select together */
+}

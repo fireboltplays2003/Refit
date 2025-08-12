@@ -1,0 +1,70 @@
+:root { --f-h: 48px; --f-radius: 13px; }
+
+/* Wrapper keeps the same vertical rhythm/alignment as your date input */
+.lsWrap {
+  position: relative;
+  display: inline-flex;
+  height: var(--f-h);
+  align-items: center;
+  z-index: 100;
+}
+
+/* Control matches your date input: height 48px, font, borders, etc. */
+.lsControl {
+  height: var(--f-h);
+  line-height: var(--f-h);
+  padding: 0 48px 0 19px;
+  background: #20232a;
+  color: #5BBAFF;
+  font-size: 1.25rem;
+  font-weight: 500;
+  border: 1px solid #333;
+  border-radius: var(--f-radius);
+  outline: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  box-sizing: border-box;
+}
+.lsControl:focus { box-shadow: 0 0 0 2px #5BBAFF; border-color: #5BBAFF; }
+
+.lsValue { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lsPlaceholder { color: #8aa8c6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Caret */
+.lsCaret {
+  position: absolute;
+  right: 14px; top: 50%;
+  transform: translateY(-50%);
+  width: 0; height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid #8aa8c6;
+  pointer-events: none;
+}
+
+/* Menu with guaranteed scrolling */
+.lsMenu {
+  position: absolute;
+  left: 0;
+  top: calc(100% + 4px);
+  background: #232427;
+  border: 1px solid #333;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px #0008;
+
+  max-height: 220px;   /* <- forces scroll when long */
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.lsOption {
+  padding: 10px 14px;
+  color: #eee;
+  cursor: pointer;
+  user-select: none;
+}
+.isHover { background: #2b3246; }
+.isActive { background: #5BBAFF; color: #232427; }
+.lsMenu { z-index: 100000; } /* keep absolute positioning + max-height scroll */

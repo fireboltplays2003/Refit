@@ -5,6 +5,7 @@ import MemberHeader from "./MemberHeader";
 import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
 import { useNavigate } from "react-router-dom";
+import LightSelect from "../../components/LightSelect"; // <-- restore custom select with scrolling
 
 const images = [
   "/img/img1.jpg",
@@ -48,8 +49,6 @@ export default function MyBookedClasses({ user, setUser }) {
       navigate("/" + user.Role);
     }
   }, [user, navigate]);
-
-
 
   // Fetch classes and types
   useEffect(() => {
@@ -106,7 +105,6 @@ export default function MyBookedClasses({ user, setUser }) {
     return list.filter(cls => {
       let match = true;
       if (filterDate) match = match && cls.Schedule === filterDate;
-      // --- Fix here: compare by string name, not ID ---
       if (filterType) match = match && String(cls.ClassType) === String(filterType);
       return match;
     }).sort((a, b) => {
@@ -149,20 +147,24 @@ export default function MyBookedClasses({ user, setUser }) {
                 max="2099-12-31"
               />
             </div>
-            <div className={styles.filterGroup}>
+
+            {/* Type group lifted together */}
+            <div className={`${styles.filterGroup} ${styles.typeGroup}`}>
               <label className={styles.filterLabel}>Type:</label>
-              <select
-                className={styles.filterTypeSelect}
-                value={filterType}
-                onChange={e => setFilterType(e.target.value)}
-              >
-                <option value="">All Types</option>
-                {classTypes.map(type => (
-                  <option key={type.type || type.ClassType || type.id} value={type.type || type.ClassType}>
-                    {type.type || type.ClassType}
-                  </option>
-                ))}
-              </select>
+              <span className={styles.selectInline}>
+                <LightSelect
+                  value={filterType}
+                  onChange={(v) => setFilterType(v)}
+                  placeholder="All Types"
+                  options={[
+                    { value: "", label: "All Types" },
+                    ...classTypes.map(t => ({
+                      value: t.type || t.ClassType || t.id,
+                      label: t.type || t.ClassType || String(t.id)
+                    }))
+                  ]}
+                />
+              </span>
             </div>
           </div>
 
@@ -183,15 +185,13 @@ export default function MyBookedClasses({ user, setUser }) {
               Class History
             </button>
           </div>
+
           {/* --- CARD CONTAINER --- */}
           <div className={styles.card}>
-            {activeTab === "upcoming" && (
-              <div className={styles.title}>My Upcoming Classes</div>
-            )}
-            {activeTab === "history" && (
-              <div className={styles.title}>Class History</div>
-            )}
+            {activeTab === "upcoming" && <div className={styles.title}>My Upcoming Classes</div>}
+            {activeTab === "history" && <div className={styles.title}>Class History</div>}
             <div className={styles.underline}></div>
+
             {loading ? (
               <div className={styles.emptyMsg}>Loading...</div>
             ) : displayedClasses.length === 0 ? (
@@ -214,6 +214,7 @@ export default function MyBookedClasses({ user, setUser }) {
                           Trainer: {cls.TrainerFirstName} {cls.TrainerLastName}
                         </div>
                       </div>
+
                       <div className={styles.classActions}>
                         {activeTab === "upcoming" && (
                           confirmCancelId === cls.ClassID ? (
@@ -250,6 +251,7 @@ export default function MyBookedClasses({ user, setUser }) {
                 ))}
               </ul>
             )}
+
             {err && (
               <div style={{ color: "red", marginTop: "1rem", fontWeight: "600" }}>
                 {err}
@@ -262,6 +264,7 @@ export default function MyBookedClasses({ user, setUser }) {
             )}
           </div>
         </main>
+
         <Footer />
         <ProfileModal
           show={showProfile}

@@ -7,6 +7,20 @@
   background: #18181a;
   position: relative;
 }
+/* ensure popover/dropdowns aren’t clipped */
+.formContainer { overflow: visible; position: relative; z-index: 2; }
+/* Apply hover color to all <option> in this view */
+.formContainer select option:hover {
+  background-color: #5BBAFF; /* same blue */
+  color: #fff;
+}
+
+/* Style for the placeholder/default option */
+.formContainer select option[value=""] {
+  background-color: #5BBAFF; /* same blue as member */
+  color: white;
+  font-weight: 600;
+}
 
 .bgImg {
   position: fixed;
