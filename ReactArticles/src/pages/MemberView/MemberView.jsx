@@ -1,10 +1,103 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "./MemberView.module.css";
 import MemberHeader from "./MemberHeader";
 import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
 import axios from "axios";
+
+/* ---------------- simple, self-contained scrollable dropdown (like trainer) ---------------- */
+function SimpleDropdown({ value, onChange, options, placeholder = "-- All Types --" }) {
+  const [open, setOpen] = useState(false);
+  const [hoverIdx, setHoverIdx] = useState(-1);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    function onDocClick(e) {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const selectedLabel =
+    value && options.find(o => String(o.value) === String(value))?.label;
+
+  const uiBlue = "#6ea8ff";
+  const ui = {
+    wrap: { position: "relative", width: "100%", zIndex: 50 },
+    control: {
+      width: "100%", height: 48,
+      borderRadius: 12,
+      background: "#232a36",
+      border: "1px solid rgba(255,255,255,0.08)",
+      padding: "0 48px 0 16px",
+      fontSize: "1.05rem", fontWeight: 700, color: uiBlue,
+      display: "flex", alignItems: "center", justifyContent: "space-between",
+      cursor: "pointer", outline: "none",
+    },
+    caret: {
+      position: "absolute", right: 14, top: "50%", transform: "translateY(-50%)",
+      borderLeft: "6px solid transparent", borderRight: "6px solid transparent",
+      borderTop: `8px solid ${uiBlue}`, pointerEvents: "none",
+    },
+    menu: {
+      position: "absolute", left: 0, top: "calc(100% + 6px)", width: "100%",
+      background: "#232427", border: "1px solid #2f3542", borderRadius: 12,
+      boxShadow: "0 12px 28px rgba(0,0,0,0.45)", maxHeight: 260, overflowY: "auto",
+    },
+    opt: (active, hovered) => ({
+      padding: "12px 14px", cursor: "pointer",
+      fontSize: "1.05rem", fontWeight: active ? 800 : 600,
+      background: active ? uiBlue : hovered ? "#2b3246" : "transparent",
+      color: active ? "#232427" : "#e8eef8",
+      transition: "background 120ms ease",
+      userSelect: "none",
+    }),
+    placeholder: { color: uiBlue, fontWeight: 700 },
+  };
+
+  return (
+    <div ref={wrapRef} style={ui.wrap}>
+      <button
+        type="button"
+        style={ui.control}
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span style={!selectedLabel ? ui.placeholder : undefined}>
+          {selectedLabel || placeholder}
+        </span>
+      </button>
+      <span style={ui.caret} />
+      {open && (
+        <div style={ui.menu} role="listbox">
+          {options.map((o, i) => {
+            const active = String(o.value) === String(value);
+            const hovered = i === hoverIdx;
+            return (
+              <div
+                key={String(o.value)}
+                role="option"
+                aria-selected={active}
+                style={ui.opt(active, hovered)}
+                onMouseEnter={() => setHoverIdx(i)}
+                onMouseLeave={() => setHoverIdx(-1)}
+                onClick={() => { onChange(o.value); setOpen(false); }}
+                title={o.label}
+              >
+                {o.label}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+/* ------------------------------------------------------------------------------------------------ */
 
 const images = [
   "/img/img1.jpg",
@@ -35,34 +128,23 @@ function getUpcomingLabel(classDate, classTime) {
   const todayD = now.getDate();
 
   const classDateTime = new Date(classDate + "T" + (classTime || "00:00"));
-  const classY = classDateTime.getFullYear();
-  const classM = classDateTime.getMonth();
-  const classD = classDateTime.getDate();
 
   function getWeekNumber(d) {
     d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
     d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
-    var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
-    var weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
     return weekNo;
   }
   const nowWeek = getWeekNumber(now);
   const classWeek = getWeekNumber(classDateTime);
 
-  if (todayY === classY && todayM === classM && todayD === classD) {
-    return "Today";
-  } else if (
-    classY === todayY &&
-    classWeek === nowWeek &&
-    classDateTime > now
-  ) {
-    return "This Week";
-  } else if (
-    (classY === todayY && classWeek === nowWeek + 1) ||
-    (classY === todayY + 1 && nowWeek === 52 && classWeek === 1)
-  ) {
-    return "Next Week";
-  }
+  if (todayY === classDateTime.getFullYear() &&
+      todayM === classDateTime.getMonth() &&
+      todayD === classDateTime.getDate()) return "Today";
+  if (classDateTime.getFullYear() === todayY && classWeek === nowWeek && classDateTime > now) return "This Week";
+  if ((classDateTime.getFullYear() === todayY && classWeek === nowWeek + 1) ||
+      (classDateTime.getFullYear() === todayY + 1 && nowWeek === 52 && classWeek === 1)) return "Next Week";
   return null;
 }
 
@@ -72,12 +154,27 @@ export default function MemberView({ user, setUser }) {
   const [bgIndex, setBgIndex] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
   const [loading, setLoading] = useState(true);
+
   const [classes, setClasses] = useState([]);
   const [fetchingClasses, setFetchingClasses] = useState(true);
 
-  // All upcoming classes in gym
   const [allUpcomingClasses, setAllUpcomingClasses] = useState([]);
   const [loadingAllUpcoming, setLoadingAllUpcoming] = useState(true);
+
+  const [membership, setMembership] = useState(null);
+  const [membershipLoading, setMembershipLoading] = useState(true);
+  const [attendance, setAttendance] = useState(0);
+
+  // NEW: class types for the dropdowns
+  const [classTypes, setClassTypes] = useState([]);
+
+  // NEW: per-section filters (date + type)
+  const [upcDate, setUpcDate] = useState("");      // yyyy-mm-dd
+  const [upcType, setUpcType] = useState("");      // type name value
+  const [allDate, setAllDate] = useState("");
+  const [allType, setAllType] = useState("");
+  const [histDate, setHistDate] = useState("");
+  const [histType, setHistType] = useState("");
 
   useEffect(() => {
     if (!user || !user.Role) {
@@ -87,13 +184,6 @@ export default function MemberView({ user, setUser }) {
     }
   }, [user, navigate]);
 
-  // MEMBERSHIP CARD
-  const [membership, setMembership] = useState(null);
-  const [membershipLoading, setMembershipLoading] = useState(true);
-
-  // CLASS ATTENDANCE
-  const [attendance, setAttendance] = useState(0);
-
   useEffect(() => {
     if (!user || !user.Role) {
       setAuthorized(false);
@@ -101,7 +191,6 @@ export default function MemberView({ user, setUser }) {
       return;
     }
     setLoading(false);
-
     if (user.Role !== "member") {
       navigate("/" + user.Role);
     } else {
@@ -116,6 +205,7 @@ export default function MemberView({ user, setUser }) {
     return () => clearInterval(interval);
   }, []);
 
+  // fetch user's booked classes
   useEffect(() => {
     if (!authorized) return;
     setFetchingClasses(true);
@@ -124,7 +214,6 @@ export default function MemberView({ user, setUser }) {
       .then(data => {
         setClasses(Array.isArray(data) ? data : []);
         setAttendance(Array.isArray(data) ? data.filter(cls => {
-          // Only classes in the past
           const classDateTime = new Date(cls.Schedule + "T" + (cls.time || "00:00"));
           return classDateTime < new Date();
         }).length : 0);
@@ -137,7 +226,7 @@ export default function MemberView({ user, setUser }) {
       });
   }, [authorized]);
 
-  // Fetch all upcoming classes in gym (not just member's)
+  // fetch all upcoming classes (gym)
   useEffect(() => {
     if (!authorized) return;
     setLoadingAllUpcoming(true);
@@ -153,7 +242,7 @@ export default function MemberView({ user, setUser }) {
       });
   }, [authorized]);
 
-  // MEMBERSHIP CARD: fetch membership info
+  // membership
   useEffect(() => {
     if (!authorized) return;
     setMembershipLoading(true);
@@ -167,6 +256,14 @@ export default function MemberView({ user, setUser }) {
         setMembership(null);
         setMembershipLoading(false);
       });
+  }, [authorized]);
+
+  // NEW: fetch class types for dropdown options
+  useEffect(() => {
+    if (!authorized) return;
+    axios.get("/member/class-types", { withCredentials: true })
+      .then(res => setClassTypes(res.data || []))
+      .catch(() => setClassTypes([]));
   }, [authorized]);
 
   if (loading) {
@@ -196,7 +293,6 @@ export default function MemberView({ user, setUser }) {
   upcomingClasses.sort((a, b) => new Date(a.Schedule + "T" + (a.time || "00:00")) - new Date(b.Schedule + "T" + (b.time || "00:00")));
   pastClasses.sort((a, b) => new Date(b.Schedule + "T" + (b.time || "00:00")) - new Date(a.Schedule + "T" + (a.time || "00:00")));
 
-  // MEMBERSHIP CARD: calculate days left
   let daysLeft = null;
   if (membership && membership.StartDate && membership.EndDate) {
     const end = new Date(membership.EndDate);
@@ -204,6 +300,43 @@ export default function MemberView({ user, setUser }) {
     end.setHours(0,0,0,0); today.setHours(0,0,0,0);
     daysLeft = Math.max(0, Math.round((end - today) / (1000 * 60 * 60 * 24)));
   }
+
+  // --- type options (value = readable name to match cls.ClassType/Name strings) ---
+  const typeOptions = [
+    { value: "", label: "-- All Types --" },
+    ...(classTypes || []).map(t => {
+      const label = t.type || t.ClassType || String(t.id);
+      return { value: label, label };
+    }),
+  ];
+
+  // --- helpers to apply per-section filters ---
+  const applyFilters = (list, dateVal, typeVal) =>
+    list.filter(cls => {
+      let ok = true;
+      if (dateVal) ok = ok && (cls.Schedule === dateVal);
+      if (typeVal) {
+        const typeStr = String(cls.ClassTypeName || cls.ClassType || "");
+        ok = ok && (typeStr === String(typeVal));
+      }
+      return ok;
+    });
+
+  const filteredUpcoming = applyFilters(upcomingClasses, upcDate, upcType);
+  const filteredAllUpcoming = applyFilters(allUpcomingClasses, allDate, allType);
+  const filteredHistory = applyFilters(pastClasses, histDate, histType);
+
+  // small inline styles for the filter layout only
+  const row = {
+    display: "flex", gap: "1rem", alignItems: "center",
+    flexWrap: "wrap", margin: "0.4rem 0 0.8rem 0"
+  };
+  const label = { color: "#bfc5ce", fontWeight: 700, fontSize: "1rem" };
+  const dateInput = {
+    width: 250, maxWidth: 270, height: 48, borderRadius: 12,
+    border: "1px solid #333", background: "#232436", color: "#69aaff",
+    padding: "0 16px", fontSize: "1.05rem", fontWeight: 600, outline: "none"
+  };
 
   return (
     <>
@@ -224,7 +357,7 @@ export default function MemberView({ user, setUser }) {
         <div className={styles.overlay} />
         <main className={styles.mainContent}>
 
-          {/* --- TOP BAR ROW --- */}
+          {/* --- TOP BAR ROW (unchanged) --- */}
           <div className={styles.topBarRow}>
             <div className={styles.welcomeContainerLeft}>
               <h1 className={styles.welcomeTitleLeft}>
@@ -271,18 +404,41 @@ export default function MemberView({ user, setUser }) {
           </div>
 
           <div className={styles.classSectionContainer}>
-            {/* --- 1. Your Booked Upcoming Classes --- */}
-            <section className={styles.classesSection}>
-              <h2 className={styles.sectionTitle}>My Upcoming Classes</h2>
+            {/* --- 1) My Upcoming Classes --- */}
+            <section className={`${styles.classesSection} ${styles.section}`}>
+              <div className={styles.sectionTitleRow}>
+                <h2 className={styles.sectionTitle}>My Upcoming Classes</h2>
+              </div>
+              <div className={styles.sectionUnderline}></div>
+
+              {/* Filters (Date + Type) */}
+              <div style={row}>
+                <label style={label}>Date:</label>
+                <input
+                  type="date"
+                  value={upcDate}
+                  onChange={(e) => setUpcDate(e.target.value)}
+                  max="2099-12-31"
+                  style={dateInput}
+                />
+                <label style={{ ...label, marginLeft: 8 }}>Type:</label>
+                <div className={styles.typeControl}>
+                  <SimpleDropdown
+                    value={upcType}
+                    onChange={setUpcType}
+                    options={typeOptions}
+                    placeholder="-- All Types --"
+                  />
+                </div>
+              </div>
+
               {fetchingClasses ? (
                 <div className={styles.loadingMsg}>Loading classes...</div>
-              ) : upcomingClasses.length === 0 ? (
-                <div className={styles.noClassesMsg}>
-                  No upcoming classes
-                </div>
+              ) : filteredUpcoming.length === 0 ? (
+                <div className={styles.noClassesMsg}>No upcoming classes</div>
               ) : (
                 <div className={styles.classListHorizontal}>
-                  {upcomingClasses.map(cls => (
+                  {filteredUpcoming.map(cls => (
                     <div className={styles.classCard} key={cls.ClassID}>
                       <div className={styles.classMainInfo}>
                         <span className={styles.classType}>{cls.ClassType}</span>
@@ -304,18 +460,41 @@ export default function MemberView({ user, setUser }) {
               )}
             </section>
 
-            {/* === 2. All Upcoming Classes in Gym (not just your bookings) === */}
-            <section className={styles.classesSection}>
-              <h2 className={styles.sectionTitle}>All Upcoming Classes</h2>
+            {/* --- 2) All Upcoming Classes --- */}
+            <section className={`${styles.classesSection} ${styles.section}`}>
+              <div className={styles.sectionTitleRow}>
+                <h2 className={styles.sectionTitle}>All Upcoming Classes</h2>
+              </div>
+              <div className={styles.sectionUnderline}></div>
+
+              {/* Filters */}
+              <div style={row}>
+                <label style={label}>Date:</label>
+                <input
+                  type="date"
+                  value={allDate}
+                  onChange={(e) => setAllDate(e.target.value)}
+                  max="2099-12-31"
+                  style={dateInput}
+                />
+                <label style={{ ...label, marginLeft: 8 }}>Type:</label>
+                <div className={styles.typeControl}>
+                  <SimpleDropdown
+                    value={allType}
+                    onChange={setAllType}
+                    options={typeOptions}
+                    placeholder="-- All Types --"
+                  />
+                </div>
+              </div>
+
               {loadingAllUpcoming ? (
                 <div className={styles.loadingMsg}>Loading all classes...</div>
-              ) : allUpcomingClasses.length === 0 ? (
-                <div className={styles.noClassesMsg}>
-                  No upcoming classes in the gym
-                </div>
+              ) : filteredAllUpcoming.length === 0 ? (
+                <div className={styles.noClassesMsg}>No upcoming classes in the gym</div>
               ) : (
                 <div className={styles.classListHorizontal}>
-                  {allUpcomingClasses.map(cls => (
+                  {filteredAllUpcoming.map(cls => (
                     <div className={styles.classCard} key={cls.ClassID}>
                       <div className={styles.classMainInfo}>
                         <span className={styles.classType}>{cls.ClassTypeName || cls.ClassType || "Class"}</span>
@@ -342,18 +521,41 @@ export default function MemberView({ user, setUser }) {
               )}
             </section>
 
-            {/* --- 3. Past Class History --- */}
-            <section className={styles.classesSection}>
-              <h2 className={styles.sectionTitle}>My Class History</h2>
+            {/* --- 3) My Class History --- */}
+            <section className={`${styles.classesSection} ${styles.section}`}>
+              <div className={styles.sectionTitleRow}>
+                <h2 className={styles.sectionTitle}>My Class History</h2>
+              </div>
+              <div className={styles.sectionUnderline}></div>
+
+              {/* Filters */}
+              <div style={row}>
+                <label style={label}>Date:</label>
+                <input
+                  type="date"
+                  value={histDate}
+                  onChange={(e) => setHistDate(e.target.value)}
+                  max="2099-12-31"
+                  style={dateInput}
+                />
+                <label style={{ ...label, marginLeft: 8 }}>Type:</label>
+                <div className={styles.typeControl}>
+                  <SimpleDropdown
+                    value={histType}
+                    onChange={setHistType}
+                    options={typeOptions}
+                    placeholder="-- All Types --"
+                  />
+                </div>
+              </div>
+
               {fetchingClasses ? (
                 <div className={styles.loadingMsg}>Loading history...</div>
-              ) : pastClasses.length === 0 ? (
-                <div className={styles.noClassesMsg}>
-                  No class history yet
-                </div>
+              ) : filteredHistory.length === 0 ? (
+                <div className={styles.noClassesMsg}>No class history yet</div>
               ) : (
                 <div className={styles.classListHorizontal}>
-                  {pastClasses.map(cls => (
+                  {filteredHistory.map(cls => (
                     <div className={styles.classCard} key={cls.ClassID}>
                       <div className={styles.classMainInfo}>
                         <span className={styles.classType}>{cls.ClassType}</span>
@@ -371,6 +573,7 @@ export default function MemberView({ user, setUser }) {
             </section>
           </div>
         </main>
+
         <Footer />
         <ProfileModal
           show={showProfile}

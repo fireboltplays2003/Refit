@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import axios from "axios";
 import TrainerHeader from "./TrainerHeader";
 import Footer from "../../components/Footer";
@@ -60,11 +61,17 @@ function isFutureClassJerusalem(cls) {
   return !Number.isNaN(hour) && hour > currentILHour;
 }
 
-/* ---------- scrollable, hoverable dropdown (no external CSS needed) ---------- */
+/* ---------- scrollable, hoverable dropdown with PORTAL MENU ---------- */
 function SimpleDropdown({ value, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false);
   const [hoverIdx, setHoverIdx] = useState(-1);
   const wrapRef = useRef(null);
+  const [menuPos, setMenuPos] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+    placeAbove: false,
+  });
 
   useEffect(() => {
     function onDocClick(e) {
@@ -74,6 +81,44 @@ function SimpleDropdown({ value, onChange, options, placeholder }) {
     document.addEventListener("mousedown", onDocClick);
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
+
+  // Recompute menu position when opening or on resize/scroll
+  useLayoutEffect(() => {
+    if (!open || !wrapRef.current) return;
+
+    function compute() {
+      const ctrl = wrapRef.current.querySelector("[data-dd-control]");
+      if (!ctrl) return;
+
+      const rect = ctrl.getBoundingClientRect();
+      const viewportH = window.innerHeight || document.documentElement.clientHeight;
+      const menuHeight = 240; // must match maxHeight below
+      const spaceBelow = viewportH - rect.bottom;
+      const placeAbove = spaceBelow < menuHeight + 12; // 12px gap
+
+      setMenuPos({
+        left: Math.round(rect.left),
+        width: Math.round(rect.width),
+        top: placeAbove ? Math.round(rect.top - 6 - menuHeight) : Math.round(rect.bottom + 6),
+        placeAbove,
+      });
+    }
+
+    compute();
+    const ro = new ResizeObserver(compute);
+    ro.observe(document.documentElement);
+
+    function onScroll() { compute(); }
+    function onResize() { compute(); }
+    window.addEventListener("scroll", onScroll, true);
+    window.addEventListener("resize", onResize);
+
+    return () => {
+      window.removeEventListener("scroll", onScroll, true);
+      window.removeEventListener("resize", onResize);
+      ro.disconnect();
+    };
+  }, [open]);
 
   const selectedLabel = value
     ? options.find(o => String(o.value) === String(value))?.label
@@ -85,7 +130,7 @@ function SimpleDropdown({ value, onChange, options, placeholder }) {
     wrap: {
       position: "relative",
       width: "100%",
-      zIndex: 100,
+      // Do NOT set z-index here; portal solves stacking/footers
     },
     control: {
       width: "100%",
@@ -94,7 +139,7 @@ function SimpleDropdown({ value, onChange, options, placeholder }) {
       background: "#232a36",
       border: "1px solid rgba(255,255,255,0.08)",
       padding: "0 48px 0 20px",
-      fontSize: "1.25rem",     // same size as your “All Types”
+      fontSize: "1.25rem",
       fontWeight: 600,
       color: "#69aaff",
       display: "flex",
@@ -113,18 +158,19 @@ function SimpleDropdown({ value, onChange, options, placeholder }) {
       borderTop: `8px solid ${BLUE}`,
       pointerEvents: "none",
     },
-    menu: {
-      position: "absolute",
-      left: 0,
-      top: "calc(100% + 6px)",
-      width: "100%",
+    // Portal menu: fixed to viewport so it stays above footer
+    menuFixed: {
+      position: "fixed",
+      left: menuPos.left,
+      top: menuPos.top,
+      width: menuPos.width,
       background: "#232427",
       border: "1px solid #2f3542",
       borderRadius: 12,
       boxShadow: "0 12px 28px rgba(0,0,0,0.45)",
-      maxHeight: 240,          // <-- scrolling
+      maxHeight: 240,
       overflowY: "auto",
-      zIndex: 999,
+      zIndex: 2147483647, // maximum practical
     },
     opt: ({ active, hovered, placeholder }) => ({
       padding: "12px 16px",
@@ -137,6 +183,14 @@ function SimpleDropdown({ value, onChange, options, placeholder }) {
       color: (placeholder || active || hovered) ? "#232427" : "#e8eef8",
     }),
     placeholderText: { color: "#8aa8c6" },
+    flipTip: {
+      position: "fixed",
+      left: menuPos.left + menuPos.width - 18,
+      top: menuPos.placeAbove ? menuPos.top + 6 : menuPos.top - 14,
+      fontSize: 10,
+      opacity: 0.7,
+      userSelect: "none",
+    }
   };
 
   return (
@@ -147,33 +201,39 @@ function SimpleDropdown({ value, onChange, options, placeholder }) {
         onClick={() => setOpen(o => !o)}
         aria-haspopup="listbox"
         aria-expanded={open}
+        data-dd-control
       >
         <span style={!selectedLabel ? ui.placeholderText : undefined}>
           {selectedLabel || placeholder}
         </span>
       </button>
       <span style={ui.caret} />
-      {open && (
-        <div style={ui.menu} role="listbox">
-          {options.map((o, i) => {
-            const active = String(o.value) === String(value);
-            const isPlaceholder = String(o.value) === "";
-            const hovered = hoverIdx === i;
-            return (
-              <div
-                key={String(o.value) + i}
-                role="option"
-                aria-selected={active}
-                style={ui.opt({ active, hovered, placeholder: isPlaceholder })}
-                onClick={() => { onChange(o.value); setOpen(false); }}
-                onMouseEnter={() => setHoverIdx(i)}
-                onMouseLeave={() => setHoverIdx(-1)}
-              >
-                {o.label}
-              </div>
-            );
-          })}
-        </div>
+      {open && createPortal(
+        <>
+          <div style={ui.menuFixed} role="listbox">
+            {options.map((o, i) => {
+              const active = String(o.value) === String(value);
+              const isPlaceholder = String(o.value) === "";
+              const hovered = hoverIdx === i;
+              return (
+                <div
+                  key={String(o.value) + i}
+                  role="option"
+                  aria-selected={active}
+                  style={ui.opt({ active, hovered, placeholder: isPlaceholder })}
+                  onClick={() => { onChange(o.value); }}
+                  onMouseEnter={() => setHoverIdx(i)}
+                  onMouseLeave={() => setHoverIdx(-1)}
+                >
+                  {o.label}
+                </div>
+              );
+            })}
+          </div>
+          {/* tiny helper text showing flip (optional, can remove) */}
+          {/* <div style={ui.flipTip}>{menuPos.placeAbove ? "▲" : "▼"}</div> */}
+        </>,
+        document.body
       )}
     </div>
   );
@@ -418,7 +478,8 @@ export default function ModifyClassView({ user, setUser }) {
       <div className={styles.overlay} />
       <TrainerHeader trainer={user} setTrainer={setUser} onProfile={() => setShowProfile(true)} />
       <main className={styles.mainContent}>
-        <div className={styles.formContainer} style={{ overflow: "visible", position: "relative", zIndex: 2 }}>
+        {/* If your footer is fixed, padding-bottom helps avoid overlap while scrolling the page */}
+        <div className={styles.formContainer} style={{ overflow: "visible", position: "relative", zIndex: 2, paddingBottom: 24 }}>
           <h2 className={styles.addClassHeader}>Modify Existing Class</h2>
 
           <div style={{ marginBottom: 12 }}>

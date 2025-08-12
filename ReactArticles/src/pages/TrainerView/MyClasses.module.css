@@ -490,3 +490,21 @@
     max-width: 100%;
   }
 }
+/* === Move only the "Type" filter (label + dropdown) === */
+.typeFilterGroup {
+  margin-top: 0; /* keep same as Date */
+}
+
+/* === Match size & look of the Date input === */
+.typeFilterContainer {
+  width: 260px;                /* same width you want */
+  height: 75px;                /* match the Date input height */
+  max-width: 100%;
+}
+
+.typeFilterContainer button {
+  height: 75px;                /* match date input height */
+  border-radius: 8px;          /* same as date input */
+  padding: 0 12px;              /* same side padding as date input */
+  font-size: 1rem;              /* match text size */
+}

@@ -512,3 +512,18 @@
   font-weight: 700;
   letter-spacing: 0.5px;
 }
+/* Controls ONLY the blue “All Types” box (not the label) for all 3 sections */
+:root{
+  /* Tweak these to your taste */
+  --type-offset-y: -10px;  /* raise (-) or lower (+) the box */
+  --type-width: 250px;    /* width of the dropdown box */
+}
+
+.typeControl{
+  position: relative;
+  top: var(--type-offset-y);  /* vertical nudge */
+  width: var(--type-width);   /* dropdown width */
+  max-width: 100%;
+  height: 48px;               /* match the control height */
+  display: inline-block;      /* isolates it from label/row width */
+}

@@ -1,9 +1,144 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import TrainerHeader from "./TrainerHeader";
 import Footer from "../../components/Footer";
 import styles from "./MyClasses.module.css";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+
+/* ---------- Simple, self-contained dropdown (scrolling + hover; 1:1 look) ---------- */
+function SimpleDropdown({
+  value,
+  onChange,
+  options,                 // [{ value, label }]
+  headerText = "All Types" // clickable header to clear (value = "")
+}) {
+  const [open, setOpen] = useState(false);
+  const [hoverIdx, setHoverIdx] = useState(-1);
+  const wrapRef = useRef(null);
+
+  useEffect(() => {
+    function onDocClick(e) {
+      if (!wrapRef.current) return;
+      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDocClick);
+    return () => document.removeEventListener("mousedown", onDocClick);
+  }, []);
+
+  const selectedLabel =
+    options.find(o => String(o.value) === String(value))?.label || headerText;
+
+  const uiBlue = "#6ea8ff";
+
+  const ui = {
+    wrap: { position: "relative", width: "100%", zIndex: 50 },
+    control: {
+      width: "100%",
+      height: 56,
+      borderRadius: 14,
+      background: "#232a36",
+      border: "1px solid rgba(255,255,255,0.08)",
+      padding: "0 48px 0 22px",
+      fontSize: "1.22rem",
+      fontWeight: 700,
+      color: uiBlue,
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      cursor: "pointer",
+      outline: "none",
+    },
+    caret: {
+      position: "absolute",
+      right: 16,
+      top: "50%",
+      transform: "translateY(-50%)",
+      borderLeft: "6px solid transparent",
+      borderRight: "6px solid transparent",
+      borderTop: `8px solid ${uiBlue}`,
+      pointerEvents: "none",
+    },
+    menu: {
+      position: "absolute",
+      left: 0,
+      top: "calc(100% + 6px)",
+      width: "100%",
+      background: "#232427",
+      border: "1px solid #2f3542",
+      borderRadius: 12,
+      boxShadow: "0 12px 28px rgba(0,0,0,0.45)",
+      maxHeight: 320,         // scrolling
+      overflowY: "auto",
+    },
+    header: {
+      padding: "14px 16px",
+      background: uiBlue,
+      color: "#0e1621",
+      fontWeight: 800,
+      fontSize: "1.12rem",
+      borderTopLeftRadius: 10,
+      borderTopRightRadius: 10,
+      cursor: "pointer",
+      userSelect: "none",
+    },
+    opt: (active, hovered) => ({
+      padding: "14px 16px",
+      cursor: "pointer",
+      fontSize: "1.14rem",
+      fontWeight: active ? 700 : 500,
+      background: active ? uiBlue : hovered ? "#2b3246" : "transparent",
+      color: active ? "#232427" : "#e8eef8",
+      transition: "background 120ms ease",
+      userSelect: "none",
+    }),
+  };
+
+  return (
+    <div ref={wrapRef} style={ui.wrap}>
+      <button
+        type="button"
+        style={ui.control}
+        onClick={() => setOpen(o => !o)}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span>{selectedLabel}</span>
+      </button>
+      <span style={ui.caret} />
+      {open && (
+        <div style={ui.menu} role="listbox">
+          {/* clickable header (clears to "All Types") */}
+          <div
+            style={ui.header}
+            onMouseDown={(e) => { e.preventDefault(); onChange(""); setOpen(false); }}
+          >
+            {headerText}
+          </div>
+          {options.map((o, i) => {
+            const active = String(o.value) === String(value);
+            const hovered = i === hoverIdx;
+            return (
+              <div
+                key={String(o.value)}
+                role="option"
+                aria-selected={active}
+                style={ui.opt(active, hovered)}
+                onMouseEnter={() => setHoverIdx(i)}
+                onMouseLeave={() => setHoverIdx(-1)}
+                onMouseDown={(e) => { e.preventDefault(); onChange(o.value); setOpen(false); }}
+                title={o.label}
+              >
+                {o.label}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+/* --------------------------------------------------------------------- */
+
 // Helper: format to "dd/mm/yyyy HH:MM"
 function formatDateTime(isoDate, time) {
   if (!isoDate) return "";
@@ -35,17 +170,14 @@ export default function MyClasses({ user, setUser }) {
   const [classTypes, setClassTypes] = useState([]);
   const [filterDate, setFilterDate] = useState("");
   const [filterType, setFilterType] = useState("");
-const navigate = useNavigate();
+  const navigate = useNavigate();
 
-useEffect(() => {
-  if (!user || !user.Role) {
-    navigate("/login");
-  } else if (user.Role !== "trainer") {
-    navigate("/" + user.Role);
-  }
-}, [user, navigate]);
+  useEffect(() => {
+    if (!user || !user.Role) navigate("/login");
+    else if (user.Role !== "trainer") navigate("/" + user.Role);
+  }, [user, navigate]);
 
-  // BG
+  // BG cycle
   useEffect(() => {
     const interval = setInterval(() => {
       setBgIndex((prev) => (prev + 1) % images.length);
@@ -53,7 +185,6 @@ useEffect(() => {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch all classes
   useEffect(() => {
     fetchClassesWithMembers();
     fetchClassTypes();
@@ -85,50 +216,39 @@ useEffect(() => {
       .catch(() => setClassTypes([]));
   }
 
-  function openMembersModal(className, members) {
+  function openMembersModal(_className, members) {
     setSelectedMembers(members || []);
     setModalOpen(true);
   }
-
   function closeModal() {
     setModalOpen(false);
     setSelectedMembers([]);
   }
 
-  // Filter logic
   const now = new Date();
-
-  // Split classes
   const upcomingClasses = allClasses.filter((cls) => {
-    const classDateTime = new Date(`${cls.Schedule}T${cls.time || "00:00"}`);
-    return classDateTime >= now;
+    const dt = new Date(`${cls.Schedule}T${cls.time || "00:00"}`);
+    return dt >= now;
   });
   const historyClasses = allClasses.filter((cls) => {
-    const classDateTime = new Date(`${cls.Schedule}T${cls.time || "00:00"}`);
-    return classDateTime < now;
+    const dt = new Date(`${cls.Schedule}T${cls.time || "00:00"}`);
+    return dt < now;
   });
 
-  // Apply filters
   function filterList(list) {
     return list.filter((cls) => {
       let match = true;
-      // Filter by date
-      if (filterDate) {
-        // filterDate is yyyy-mm-dd; cls.Schedule is yyyy-mm-dd
-        match = match && cls.Schedule === filterDate;
-      }
-      // Filter by type
-      if (filterType) {
-        match = match && String(cls.ClassType) === String(filterType);
-      }
+      if (filterDate) match = match && cls.Schedule === filterDate;
+      if (filterType) match = match && String(cls.ClassType) === String(filterType);
       return match;
     });
   }
 
   const displayedClasses =
-    activeTab === "upcoming"
-      ? filterList(upcomingClasses)
-      : filterList(historyClasses);
+    activeTab === "upcoming" ? filterList(upcomingClasses) : filterList(historyClasses);
+
+  // No duplicate "All Types" — header clears filter.
+  const typeOptions = classTypes.map((t) => ({ value: String(t.id), label: t.type }));
 
   return (
     <div className={styles.bgWrapper}>
@@ -145,11 +265,8 @@ useEffect(() => {
         />
       ))}
       <div className={styles.overlay} />
-      <TrainerHeader
-        trainer={user}
-        setTrainer={setUser}
-        onProfile={() => {}}
-      />
+      <TrainerHeader trainer={user} setTrainer={setUser} onProfile={() => {}} />
+
       <main className={styles.mainContent}>
         {/* FILTERS ROW */}
         <div className={styles.filtersRow}>
@@ -163,53 +280,43 @@ useEffect(() => {
               max="2099-12-31"
             />
           </div>
-          <div className={styles.filterGroup}>
+
+          {/* Type filter — uses CSS hooks you added */}
+          <div className={`${styles.filterGroup} ${styles.typeFilterGroup}`}>
             <label className={styles.filterLabel}>Type:</label>
-            <select
-              className={styles.filterTypeSelect}
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-            >
-              <option value="">All Types</option>
-              {classTypes.map((type) => (
-                <option key={type.id} value={type.id}>
-                  {type.type}
-                </option>
-              ))}
-            </select>
+            <div className={styles.typeFilterContainer}>
+              <SimpleDropdown
+                value={filterType}
+                onChange={setFilterType}
+                options={typeOptions}
+                headerText="All Types"
+              />
+            </div>
           </div>
         </div>
 
         <div className={styles.card}>
-          {/* TABS inside card, left side */}
           <div className={styles.tabHeaderRow}>
             <button
-              className={`${styles.tabBtn} ${
-                activeTab === "upcoming" ? styles.activeTab : ""
-              }`}
+              className={`${styles.tabBtn} ${activeTab === "upcoming" ? styles.activeTab : ""}`}
               onClick={() => setActiveTab("upcoming")}
               type="button"
             >
               My Classes
             </button>
             <button
-              className={`${styles.tabBtn} ${
-                activeTab === "history" ? styles.activeTab : ""
-              }`}
+              className={`${styles.tabBtn} ${activeTab === "history" ? styles.activeTab : ""}`}
               onClick={() => setActiveTab("history")}
               type="button"
             >
               Class History
             </button>
           </div>
-          {/* Card Title */}
-          {activeTab === "upcoming" && (
-            <div className={styles.title}>My Upcoming Classes</div>
-          )}
-          {activeTab === "history" && (
-            <div className={styles.title}>Class History</div>
-          )}
+
+          {activeTab === "upcoming" && <div className={styles.title}>My Upcoming Classes</div>}
+          {activeTab === "history" && <div className={styles.title}>Class History</div>}
           <div className={styles.underline}></div>
+
           {loading ? (
             <div className={styles.emptyMsg}>Loading...</div>
           ) : displayedClasses.length === 0 ? (
@@ -219,19 +326,13 @@ useEffect(() => {
               {displayedClasses.map((cls) => {
                 const currentCount = cls.Members ? cls.Members.length : 0;
                 const maxParticipants = cls.MaxParticipants ?? 0;
-
-                const countDisplay =
-                  maxParticipants === 0
-                    ? "0/0"
-                    : `${currentCount}/${maxParticipants}`;
+                const countDisplay = maxParticipants === 0 ? "0/0" : `${currentCount}/${maxParticipants}`;
 
                 return (
                   <li key={cls.ClassID} className={styles.classItem}>
                     <div className={styles.classRow}>
                       <div className={styles.classDetails}>
-                        <div className={styles.classType}>
-                          {cls.ClassTypeName || "Class"}
-                        </div>
+                        <div className={styles.classType}>{cls.ClassTypeName || "Class"}</div>
                         <div className={styles.classDateTime}>
                           {formatDateTime(cls.Schedule, cls.time)}
                         </div>
@@ -241,10 +342,7 @@ useEffect(() => {
                         <button
                           className={styles.viewBtn}
                           onClick={() =>
-                            openMembersModal(
-                              cls.ClassTypeName || "Class",
-                              cls.Members
-                            )
+                            openMembersModal(cls.ClassTypeName || "Class", cls.Members)
                           }
                         >
                           View Members
@@ -257,13 +355,11 @@ useEffect(() => {
             </ul>
           )}
         </div>
+
         {/* MEMBERS MODAL */}
         {modalOpen && (
           <div className={styles.popupBackdrop} onClick={closeModal}>
-            <div
-              className={styles.membersModal}
-              onClick={(e) => e.stopPropagation()}
-            >
+            <div className={styles.membersModal} onClick={(e) => e.stopPropagation()}>
               <button className={styles.membersClose} onClick={closeModal}>
                 &times;
               </button>
@@ -280,9 +376,7 @@ useEffect(() => {
                   <tbody>
                     {selectedMembers.map((m, i) => (
                       <tr key={i}>
-                        <td>
-                          {m.FirstName} {m.LastName}
-                        </td>
+                        <td>{m.FirstName} {m.LastName}</td>
                         <td>{m.Email}</td>
                         <td>{m.Phone}</td>
                       </tr>
@@ -302,6 +396,7 @@ useEffect(() => {
           </div>
         )}
       </main>
+
       <Footer />
     </div>
   );

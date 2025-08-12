@@ -86,6 +86,7 @@
   align-items: center;
   margin-top: -2px; /* tiny nudge for exact baseline match on Windows */
   z-index: 5;      /* keep menu above cards */
+  
 }
 
 /* Tabs */
@@ -221,5 +222,5 @@
   .underline { width: 66px; height: 4px; margin-bottom: 21px; }
 }
 .filterGroup.typeGroup {
-  margin-top: -1px; /* Moves label + select together */
+  margin-top: 2px; /* Moves label + select together */
 }
