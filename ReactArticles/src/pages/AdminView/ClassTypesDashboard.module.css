@@ -1,0 +1,38 @@
+/* Reuse AdminView styles via CSS Modules composition */
+.bgWrapper { composes: bgWrapper from "./AdminView.module.css"; }
+.bgImg { composes: bgImg from "./AdminView.module.css"; }
+.overlay { composes: overlay from "./AdminView.module.css"; }
+.mainContent { composes: mainContent from "./AdminView.module.css"; }
+
+.bannerOk { composes: bannerOk from "./AdminView.module.css"; }
+.bannerErr { composes: bannerErr from "./AdminView.module.css"; }
+
+.classSectionContainer { composes: classSectionContainer from "./AdminView.module.css"; }
+.classesSection { composes: classesSection from "./AdminView.module.css"; }
+.sectionTitle { composes: sectionTitle from "./AdminView.module.css"; }
+.sectionDivider { composes: sectionDivider from "./AdminView.module.css"; }
+
+.filtersRow { composes: filtersRow from "./AdminView.module.css"; }
+.filterGroup { composes: filterGroup from "./AdminView.module.css"; }
+.filterLabel { composes: filterLabel from "./AdminView.module.css"; }
+.searchInput { composes: searchInput from "./AdminView.module.css"; }
+.filterDateInput { composes: filterDateInput from "./AdminView.module.css"; }
+
+.badgeBtn { composes: badgeBtn from "./AdminView.module.css"; }
+.btnSecondary { composes: btnSecondary from "./AdminView.module.css"; }
+
+.tableWrap { composes: tableWrap from "./AdminView.module.css"; }
+.peopleTable { composes: peopleTable from "./AdminView.module.css"; }
+.noClassesMsg { composes: noClassesMsg from "./AdminView.module.css"; }
+
+/* ---------- New: Alignment for the two right columns ---------- */
+/* Header cells */
+.thMax {
+  text-align: left !important;
+  position: relative;
+  left: -40px; /* can be negative */
+}.thEdit { text-align: left !important; padding-left: 15px !important; }
+
+/* Body cells (match headers) */
+.tdMax { text-align: left !important; padding-left: 12px !important; }
+.tdEdit { text-align: left !important; padding-left: 12px !important; }

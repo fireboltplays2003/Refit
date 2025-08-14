@@ -36,9 +36,7 @@ export default function AdminHeader({ user, onProfile, setUser }) {
         </NavLink>
         <nav className={styles.nav}>
           <NavLink className={styles.link} to="/admin">Home</NavLink>
-          <NavLink className={styles.link} to="/admin/members">Members</NavLink>
-          <NavLink className={styles.link} to="/admin/classes">Class Types Management</NavLink>
-          <NavLink className={styles.link} to="/admin/reports">Reports</NavLink>
+          <NavLink className={styles.link} to="/admin/class-types">Class Types</NavLink>
         </nav>
       </div>
       <div className={styles.rightSection}>

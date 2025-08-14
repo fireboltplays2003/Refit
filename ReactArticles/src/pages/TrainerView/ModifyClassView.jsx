@@ -66,6 +66,10 @@ function SimpleDropdown({ value, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false);
   const [hoverIdx, setHoverIdx] = useState(-1);
   const wrapRef = useRef(null);
+
+  // NEW: ref to the portal menu so inside clicks don't count as "outside"
+  const menuRef = useRef(null); // <— added
+
   const [menuPos, setMenuPos] = useState({
     top: 0,
     left: 0,
@@ -74,12 +78,14 @@ function SimpleDropdown({ value, onChange, options, placeholder }) {
   });
 
   useEffect(() => {
-    function onDocClick(e) {
-      if (!wrapRef.current) return;
-      if (!wrapRef.current.contains(e.target)) setOpen(false);
+    function onDocMouseDown(e) {
+      // if click is inside control wrapper OR inside the portal menu => ignore
+      if (wrapRef.current && wrapRef.current.contains(e.target)) return;
+      if (menuRef.current && menuRef.current.contains(e.target)) return; // <— added
+      setOpen(false);
     }
-    document.addEventListener("mousedown", onDocClick);
-    return () => document.removeEventListener("mousedown", onDocClick);
+    document.addEventListener("mousedown", onDocMouseDown);
+    return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, []);
 
   // Recompute menu position when opening or on resize/scroll
@@ -210,7 +216,8 @@ function SimpleDropdown({ value, onChange, options, placeholder }) {
       <span style={ui.caret} />
       {open && createPortal(
         <>
-          <div style={ui.menuFixed} role="listbox">
+          {/* NEW: attach ref to the menu */}
+          <div ref={menuRef} style={ui.menuFixed} role="listbox">
             {options.map((o, i) => {
               const active = String(o.value) === String(value);
               const isPlaceholder = String(o.value) === "";
@@ -221,7 +228,12 @@ function SimpleDropdown({ value, onChange, options, placeholder }) {
                   role="option"
                   aria-selected={active}
                   style={ui.opt({ active, hovered, placeholder: isPlaceholder })}
-                  onClick={() => { onChange(o.value); }}
+                  // IMPORTANT: select on mouse down and stop propagation so the outside mousedown doesn't close before selection
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    onChange(o.value);
+                    setOpen(false);
+                  }}
                   onMouseEnter={() => setHoverIdx(i)}
                   onMouseLeave={() => setHoverIdx(-1)}
                 >
@@ -230,7 +242,6 @@ function SimpleDropdown({ value, onChange, options, placeholder }) {
               );
             })}
           </div>
-          {/* tiny helper text showing flip (optional, can remove) */}
           {/* <div style={ui.flipTip}>{menuPos.placeAbove ? "▲" : "▼"}</div> */}
         </>,
         document.body
@@ -341,10 +352,10 @@ export default function ModifyClassView({ user, setUser }) {
     }
   }, [selectedClassId, classes]);
 
-  // Generate all hours 6:00 to 23:00
+  // Generate all hours 06:00 to 23:00 (zero-padded)
   const allHours = [];
   for (let h = 6; h <= 23; h++) {
-    allHours.push(`${h}:00`);
+    allHours.push(`${String(h).padStart(2, "0")}:00`); // <— zero-pad
   }
 
   // build hour-collision set from *future* classes only
@@ -355,7 +366,7 @@ export default function ModifyClassView({ user, setUser }) {
       if (!cls.Schedule || !cls.time) return;
       const classDate = String(cls.Schedule).slice(0, 10);
       if (classDate === isoSelectedDate && cls.ClassID !== Number(selectedClassId)) {
-        bookedHoursForDate.add(cls.time.slice(0, 5));
+        bookedHoursForDate.add(cls.time.slice(0, 5)); // already HH:mm
       }
     });
   }
@@ -379,7 +390,7 @@ export default function ModifyClassView({ user, setUser }) {
       return;
     }
 
-    if (!/^\d{1,2}:00$/.test(form.time)) {
+    if (!/^\d{2}:\d{2}$/.test(form.time)) { // <— stricter HH:mm
       setError("Please select a valid hour.");
       return;
     }
