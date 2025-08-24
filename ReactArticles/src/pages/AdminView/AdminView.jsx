@@ -16,8 +16,11 @@ const images = [
   "/img/membershipImage.png",
 ];
 
+/* --------- timezone-safe formatter (kept) --------- */
 function toDisplayDate(iso) {
   if (!iso) return "";
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
+  if (m) return `${m[3]}/${m[2]}/${m[1]}`;
   try {
     const d = new Date(iso);
     const dd = String(d.getDate()).padStart(2, "0");
@@ -27,6 +30,22 @@ function toDisplayDate(iso) {
   } catch {
     return "";
   }
+}
+
+/* ----- day helpers for inclusive filtering (kept) ----- */
+function ymdToInt(ymd) {
+  if (!ymd || ymd.length < 10) return 0;
+  const y = Number(ymd.slice(0, 4));
+  const m = Number(ymd.slice(5, 7));
+  const d = Number(ymd.slice(8, 10));
+  return y * 10000 + m * 100 + d;
+}
+function inRangeYMD(targetYMD, fromYMD, toYMD) {
+  const t = ymdToInt(targetYMD);
+  if (!t) return false;
+  const f = fromYMD ? ymdToInt(fromYMD) : -Infinity;
+  const u = toYMD ? ymdToInt(toYMD) : Infinity;
+  return t >= f && t <= u;
 }
 
 function getUpcomingLabel(dateStr, timeStr) {
@@ -68,27 +87,25 @@ export default function AdminView({ user, setUser }) {
   const [prevRaw, setPrevRaw] = useState([]);
   const [loadingPrev, setLoadingPrev] = useState(true);
 
-  // filters
-  const DATE_CHIPS = [
-    { key: "today", label: "Today" },
-    { key: "week", label: "This Week" },
-    { key: "30d", label: "Next 30 Days" },
-    { key: "all", label: "All Upcoming" },
-  ];
-  const [activeDateKey, setActiveDateKey] = useState("30d");
-  const [upcomingDate, setUpcomingDate] = useState("");
+  // filters (type retained)
   const [upcomingType, setUpcomingType] = useState("");
-  const [prevDate, setPrevDate] = useState("");
   const [prevType, setPrevType] = useState("");
+
+  // date ranges (inclusive) for Upcoming / Previous
+  const [upFrom, setUpFrom] = useState("");
+  const [upTo, setUpTo] = useState("");
+  const [prevFrom, setPrevFrom] = useState("");
+  const [prevTo, setPrevTo] = useState("");
+
+  // analytics (From/To centered)
+  const [analytics, setAnalytics] = useState(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+  const [anFrom, setAnFrom] = useState("");
+  const [anTo, setAnTo] = useState("");
 
   // pending trainers
   const [pending, setPending] = useState([]);
   const [loadingPending, setLoadingPending] = useState(true);
-
-  // analytics
-  const [analyticsWindow, setAnalyticsWindow] = useState("30d");
-  const [analytics, setAnalytics] = useState(null);
-  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
   // members modal
   const [membersOpen, setMembersOpen] = useState(false);
@@ -189,10 +206,6 @@ export default function AdminView({ user, setUser }) {
       const blob = await res.blob();
       const cd = res.headers.get("Content-Disposition") || "";
       const fallbackName = "Certification";
-      theExt:
-      {
-        /* fallthrough block for readability */
-      }
       const ext = (blob.type && blob.type.split("/")[1]) ? "." + blob.type.split("/")[1] : ".pdf";
       const filename = (getFilenameFromContentDisposition(cd) || (fallbackName + ext)).replace(/[/\\?%*:|"<>]/g, "_");
 
@@ -217,53 +230,46 @@ export default function AdminView({ user, setUser }) {
     }
   };
 
-  // analytics
+  // analytics data
   useEffect(() => {
     setLoadingAnalytics(true);
     axios
-      .get(`/admin/analytics?window=${analyticsWindow === "all" ? "all" : "30d"}`, {
-        withCredentials: true,
-      })
+      .get(`/admin/analytics?window=30d`, { withCredentials: true })
       .then((r) => setAnalytics(r.data))
       .catch(() => setAnalytics(null))
       .finally(() => setLoadingAnalytics(false));
-  }, [analyticsWindow]);
+  }, []);
 
-  // filters
-  const upcomingFiltered = useMemo(() => {
-    const now = new Date();
-    let min = new Date(0);
-    let max = new Date("9999-12-31T23:59:59");
-    if (activeDateKey === "today") {
-      min = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-      max = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-    } else if (activeDateKey === "week") {
-      min = now;
-      const end = new Date(now);
-      end.setDate(end.getDate() + 7);
-      max = end;
-    } else if (activeDateKey === "30d") {
-      min = now;
-      const end = new Date(now);
-      end.setDate(end.getDate() + 30);
-      max = end;
+  function ensureRange(from, to, name) {
+    if (from && to && ymdToInt(to) < ymdToInt(from)) {
+      setMsg({ type: "err", text: `${name}: “To” cannot be earlier than “From”.` });
+      return false;
     }
+    return true;
+  }
+
+  // derived lists (inclusive)
+  const upcomingFiltered = useMemo(() => {
+    if (!ensureRange(upFrom, upTo, "Upcoming")) return [];
     return upcomingRaw.filter((c) => {
-      const dt = new Date(c.Schedule + "T" + (c.time || "00:00"));
-      if (!(dt >= min && dt <= max)) return false;
-      if (upcomingDate && c.Schedule !== upcomingDate) return false;
+      const ymd = (c.Schedule || "").slice(0, 10);
+      if (!inRangeYMD(ymd, upFrom, upTo)) return false;
       if (upcomingType && String(c.ClassType) !== String(upcomingType)) return false;
       return true;
     });
-  }, [upcomingRaw, activeDateKey, upcomingDate, upcomingType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upcomingRaw, upFrom, upTo, upcomingType]);
 
   const prevFiltered = useMemo(() => {
+    if (!ensureRange(prevFrom, prevTo, "Previous")) return [];
     return prevRaw.filter((c) => {
-      if (prevDate && c.Schedule !== prevDate) return false;
+      const ymd = (c.Schedule || "").slice(0, 10);
+      if (!inRangeYMD(ymd, prevFrom, prevTo)) return false;
       if (prevType && String(c.ClassType) !== String(prevType)) return false;
       return true;
     });
-  }, [prevRaw, prevDate, prevType]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prevRaw, prevFrom, prevTo, prevType]);
 
   // members modal
   async function openMembersModal(classId) {
@@ -283,7 +289,7 @@ export default function AdminView({ user, setUser }) {
     setMembers([]);
   }
 
-  // people explorer data (debounced)
+  // people explorer fetched (debounced)
   const debounceRef = useRef(null);
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -318,7 +324,7 @@ export default function AdminView({ user, setUser }) {
       .finally(() => setInsightsLoading(false));
   }
 
-  // DELETE: silent (no confirm), show banner after
+  // DELETE
   async function deleteUser(userId) {
     try {
       await axios.delete(`/admin/user/${userId}`, { withCredentials: true });
@@ -328,11 +334,6 @@ export default function AdminView({ user, setUser }) {
       setMsg({ type: "err", text: "Delete failed. Ensure your backend has DELETE /admin/user/:id route." });
     }
   }
-
-  // helper for analytics times
-  const chosenTimes = (analyticsWindow === "all"
-    ? (analytics?.popularTimesAll || [])
-    : (analytics?.popularTimes30 || analytics?.popularTimes || []));
 
   return (
     <div className={styles.bgWrapper}>
@@ -351,13 +352,13 @@ export default function AdminView({ user, setUser }) {
         {msg && (
           <div
             className={msg.type === "ok" ? styles.bannerOk : styles.bannerErr}
-            onAnimationEnd={() => setTimeout(() => setMsg(null), 1800)}
+            onAnimationEnd={() => setTimeout(() => setMsg(null), 1600)}
           >
             {msg.text}
           </div>
         )}
 
-        {/* ===================== PEOPLE EXPLORER (FIRST) ===================== */}
+        {/* ===================== PEOPLE EXPLORER ===================== */}
         <div className={styles.classSectionContainer}>
           <section className={styles.classesSection}>
             <div className={styles.peopleHeader}>
@@ -404,70 +405,62 @@ export default function AdminView({ user, setUser }) {
                       <th>Phone</th>
                       <th>Role</th>
                       <th>Birthdate</th>
-                      <th className={styles.center}>Actions</th>
+                      <th className={`${styles.center} ${styles.actionsHead}`}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {people.map((p) => (
-                      <tr key={p.UserID}>
-                        <td>{p.FirstName} {p.LastName}</td>
-                        <td>{p.Email}</td>
-                        <td>{p.Phone}</td>
-                        <td>{p.Role}</td>
-                        <td>{toDisplayDate(p.DateOfBirth)}</td>
-                        <td className={styles.center}>
-                          {p.Role === "trainer" && (
-                            <button className={styles.badgeBtn} onClick={() => openInsights(p.UserID)}>Insights</button>
-                          )}
-                          {p.Role === "trainer" && p.Certifications && (
-                            <button className={styles.badgeBtn} onClick={() => downloadCertification(p.UserID)}>CV</button>
-                          )}
-                          <button className={styles.badgeDanger} onClick={() => deleteUser(p.UserID)}>Delete</button>
-                        </td>
-                      </tr>
-                    ))}
+                    {people.map((p) => {
+                      const isTrainer = p.Role === "trainer";
+                      const hasCV = isTrainer && !!p.Certifications;
+                      return (
+                        <tr key={p.UserID}>
+                          <td>{p.FirstName} {p.LastName}</td>
+                          <td>{p.Email}</td>
+                          <td>{p.Phone}</td>
+                          <td>{p.Role}</td>
+                          <td>{toDisplayDate(p.DateOfBirth)}</td>
+
+                          {/* ===== Aligned actions: 3 fixed lanes (Insights | CV | Delete) ===== */}
+                          <td className={`${styles.center} ${styles.actionsCell}`}>
+                            <div className={styles.actionsGrid}>
+                              {/* Insights lane */}
+                              {isTrainer ? (
+                                <button
+                                  className={`${styles.badgeBtn} ${styles.actionBtn}`}
+                                  onClick={() => openInsights(p.UserID)}
+                                >
+                                  Insights
+                                </button>
+                              ) : (
+                                <span className={styles.actionSpacer} />
+                              )}
+
+                              {/* CV lane */}
+                              {hasCV ? (
+                                <button
+                                  className={`${styles.badgeBtn} ${styles.actionBtn}`}
+                                  onClick={() => downloadCertification(p.UserID)}
+                                >
+                                  CV
+                                </button>
+                              ) : (
+                                <span className={styles.actionSpacer} />
+                              )}
+
+                              {/* Delete lane (always present) */}
+                              <button
+                                className={`${styles.badgeDanger} ${styles.actionBtn}`}
+                                onClick={() => deleteUser(p.UserID)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
-              </div>
-            )}
-          </section>
-        </div>
-
-        {/* ===================== PENDING TRAINERS ===================== */}
-        <div className={styles.classSectionContainer}>
-          <section className={styles.classesSection}>
-            <h2 className={styles.sectionTitle}>Trainer Requests (On Hold)</h2>
-            <div className={styles.sectionDivider} />
-            {loadingPending ? (
-              <div className={styles.loadingMsg}>Loading pending trainers...</div>
-            ) : pending.length === 0 ? (
-              <div className={`${styles.noClassesMsg} ${styles.softMsg}`}>No pending trainer requests.</div>
-            ) : (
-              <div className={styles.pendingList}>
-                {pending.map((t) => (
-                  <div className={styles.pendingCard} key={t.UserID}>
-                    <div className={styles.pendingTop}>
-                      <div className={styles.pendingName}>
-                        {t.FirstName} {t.LastName}
-                      </div>
-                      <div className={styles.pendingContact}>
-                        {t.Email} • {t.Phone}
-                      </div>
-                      <div className={styles.pendingMeta}>Birthdate: {toDisplayDate(t.DateOfBirth)}</div>
-                    </div>
-                    <div className={styles.pendingActions}>
-                      <button className={styles.btnSecondary} onClick={() => downloadCertification(t.UserID)}>
-                        Download CV
-                      </button>
-                      <button className={styles.btnApprove} onClick={() => approveTrainer(t.UserID)}>
-                        Approve
-                      </button>
-                      <button className={styles.btnReject} onClick={() => rejectTrainer(t.UserID)}>
-                        Reject
-                      </button>
-                    </div>
-                  </div>
-                ))}
               </div>
             )}
           </section>
@@ -478,19 +471,28 @@ export default function AdminView({ user, setUser }) {
           <section className={styles.classesSection}>
             <div className={styles.sectionHeaderRow}>
               <h2 className={styles.sectionTitle}>Analytics</h2>
-              <div className={styles.toggleWrap}>
-                <button
-                  className={`${styles.toggleBtn} ${analyticsWindow === "30d" ? styles.toggleActive : ""}`}
-                  onClick={() => setAnalyticsWindow("30d")}
-                >
-                  Last 30 days
-                </button>
-                <button
-                  className={`${styles.toggleBtn} ${analyticsWindow === "all" ? styles.toggleActive : ""}`}
-                  onClick={() => setAnalyticsWindow("all")}
-                >
-                  All time
-                </button>
+            </div>
+
+            <div className={styles.filtersRow} style={{ justifyContent: "center" }}>
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>From:</label>
+                <input
+                  type="date"
+                  className={styles.filterDateInput}
+                  value={anFrom}
+                  onChange={(e) => setAnFrom(e.target.value)}
+                  max="2099-12-31"
+                />
+              </div>
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>To:</label>
+                <input
+                  type="date"
+                  className={styles.filterDateInput}
+                  value={anTo}
+                  onChange={(e) => setAnTo(e.target.value)}
+                  max="2099-12-31"
+                />
               </div>
             </div>
 
@@ -503,7 +505,7 @@ export default function AdminView({ user, setUser }) {
               <div className={styles.analyticsGrid}>
                 <div className={styles.statCard}>
                   <div className={styles.statTitle}>Most Preferred Class Types</div>
-                  <div className={styles.statSub}>Ranked visually. “Utilization” = seats filled / seats offered.</div>
+                  <div className={styles.statSub}>“Utilization” = seats filled / seats offered.</div>
                   <div className={styles.barList}>
                     {analytics.classTypes.slice(0, 5).map((row, i) => {
                       const lead = Math.max(0.01, analytics.classTypes[0]?.fillRate || analytics.classTypes[0]?.utilization || 0.01);
@@ -522,7 +524,7 @@ export default function AdminView({ user, setUser }) {
                 </div>
 
                 <div className={styles.statCard}>
-                  <div className={styles.statTitle}>Trainers — Top &amp; Least (Top 3 / Least 3)</div>
+                  <div className={styles.statTitle}>Trainers — Top &amp; Least</div>
                   <div className={styles.trainersColumns}>
                     <div>
                       <div className={styles.trainersColTitle}>Top</div>
@@ -544,8 +546,8 @@ export default function AdminView({ user, setUser }) {
                 <div className={styles.statCard}>
                   <div className={styles.statTitle}>Most Chosen Class Times</div>
                   <div className={styles.pillWrap}>
-                    {chosenTimes.length ? (
-                      chosenTimes.map((slot) => (
+                    {(analytics?.popularTimes30 || analytics?.popularTimes || []).length ? (
+                      (analytics?.popularTimes30 || analytics?.popularTimes).map((slot) => (
                         <div key={slot.hourSlot} className={styles.pill}>{slot.hourSlot}</div>
                       ))
                     ) : (
@@ -563,27 +565,25 @@ export default function AdminView({ user, setUser }) {
           <section className={styles.classesSection}>
             <h2 className={styles.sectionTitle}>All Upcoming Classes</h2>
 
-            <div className={styles.chipsScroller}>
-              {DATE_CHIPS.map((c) => (
-                <button
-                  key={c.key}
-                  className={`${styles.chip} ${activeDateKey === c.key ? styles.chipActive : ""}`}
-                  onClick={() => setActiveDateKey(c.key)}
-                >
-                  {c.label}
-                </button>
-              ))}
-            </div>
-
-            {/* alignment matches TrainerView */}
             <div className={`${styles.filtersRow} ${styles.filtersRowAligned}`}>
               <div className={styles.filterGroup}>
-                <label className={styles.filterLabel}>Date:</label>
+                <label className={styles.filterLabel}>From:</label>
                 <input
                   type="date"
                   className={styles.filterDateInput}
-                  value={upcomingDate}
-                  onChange={(e) => setUpcomingDate(e.target.value)}
+                  value={upFrom}
+                  onChange={(e) => setUpFrom(e.target.value)}
+                  max="2099-12-31"
+                />
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>To:</label>
+                <input
+                  type="date"
+                  className={styles.filterDateInput}
+                  value={upTo}
+                  onChange={(e) => setUpTo(e.target.value)}
                   max="2099-12-31"
                 />
               </div>
@@ -646,15 +646,25 @@ export default function AdminView({ user, setUser }) {
           <section className={styles.classesSection}>
             <h2 className={styles.sectionTitle}>Previous Month's Classes</h2>
 
-            {/* alignment matches TrainerView */}
             <div className={`${styles.filtersRow} ${styles.filtersRowAligned}`}>
               <div className={styles.filterGroup}>
-                <label className={styles.filterLabel}>Date:</label>
+                <label className={styles.filterLabel}>From:</label>
                 <input
                   type="date"
                   className={styles.filterDateInput}
-                  value={prevDate}
-                  onChange={(e) => setPrevDate(e.target.value)}
+                  value={prevFrom}
+                  onChange={(e) => setPrevFrom(e.target.value)}
+                  max="2099-12-31"
+                />
+              </div>
+
+              <div className={styles.filterGroup}>
+                <label className={styles.filterLabel}>To:</label>
+                <input
+                  type="date"
+                  className={styles.filterDateInput}
+                  value={prevTo}
+                  onChange={(e) => setPrevTo(e.target.value)}
                   max="2099-12-31"
                 />
               </div>

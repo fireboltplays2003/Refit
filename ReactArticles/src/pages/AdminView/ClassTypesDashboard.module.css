@@ -6,6 +6,24 @@
 
 .bannerOk { composes: bannerOk from "./AdminView.module.css"; }
 .bannerErr { composes: bannerErr from "./AdminView.module.css"; }
+/* Optional warn banner if you use it elsewhere */
+.bannerWarn {
+  composes: bannerWarn from "./AdminView.module.css";
+}
+
+/* --- HARD OVERRIDES to prevent double-pop animations from AdminView --- */
+.bannerOk,
+.bannerErr,
+.bannerWarn {
+  /* kill any keyframe/animation inherited from AdminView */
+  animation: none !important;
+  /* use a tiny, stable opacity transition only */
+  transition: opacity 200ms ease !important;
+  opacity: 1;
+}
+
+/* If you ever want to mount the slot even when hidden, you can toggle this: */
+/* .bannerHidden { opacity: 0; pointer-events: none; } */
 
 .classSectionContainer { composes: classSectionContainer from "./AdminView.module.css"; }
 .classesSection { composes: classesSection from "./AdminView.module.css"; }
@@ -25,14 +43,8 @@
 .peopleTable { composes: peopleTable from "./AdminView.module.css"; }
 .noClassesMsg { composes: noClassesMsg from "./AdminView.module.css"; }
 
-/* ---------- New: Alignment for the two right columns ---------- */
-/* Header cells */
-.thMax {
-  text-align: left !important;
-  position: relative;
-  left: -40px; /* can be negative */
-}.thEdit { text-align: left !important; padding-left: 15px !important; }
-
-/* Body cells (match headers) */
+/* Keep your exact alignment */
+.thMax { text-align: left !important; position: relative; left: -40px; }
+.thEdit { text-align: left !important; padding-left: 15px !important; }
 .tdMax { text-align: left !important; padding-left: 12px !important; }
 .tdEdit { text-align: left !important; padding-left: 12px !important; }

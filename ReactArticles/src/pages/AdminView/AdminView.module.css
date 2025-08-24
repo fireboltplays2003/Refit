@@ -29,6 +29,17 @@
 /* keep date/type perfectly aligned */
 .filtersRowAligned > .filterGroup:nth-of-type(2){ margin-top:-12px; }
 
+/* NEW: center the analytics filter row */
+.filtersRowCentered{justify-content:center}
+
+/* NEW: small inline range error */
+.inlineRangeError{
+  text-align:center;
+  color:#ff8f9f;
+  font-weight:800;
+  margin:-4px 0 10px;
+}
+
 /* ===== Small divider line ===== */
 .sectionDivider{height:2px;background:#2c3252;border-radius:2px;margin:8px 0 18px}
 
@@ -39,8 +50,25 @@
 .peopleTable th{color:#8fb7ff;text-align:left;font-weight:800}
 .peopleTable td{color:#e9eef6}
 .center{text-align:center}
+
+/* Buttons */
 .badgeBtn{margin:0 6px 6px 0;padding:6px 10px;border-radius:8px;border:none;background:#6ea8ff;color:#232427;cursor:pointer;font-weight:800}
 .badgeDanger{margin:0 0 6px 0;padding:6px 10px;border-radius:8px;border:none;background:#ff6b6b;color:#fff;cursor:pointer;font-weight:800}
+
+/* NEW: perfectly aligned Actions column */
+.actionsCell{vertical-align:middle}
+.actionsGrid{
+  display:grid;
+  grid-template-columns: repeat(3, 80px); /* Insights | CV | Delete */
+  justify-content:center;
+  gap:6px 10px;
+}
+.actionsBtn{
+  width:80px;
+  display:inline-block;
+  text-align:center;
+}
+.invisible{visibility:hidden}
 
 /* ===== Pending trainer cards ===== */
 .pendingList{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
@@ -72,7 +100,7 @@
 .pillWrap{display:flex;gap:8px;flex-wrap:wrap}
 .pill{padding:6px 10px;border-radius:999px;background:#2f3353;color:#e9eef6;font-weight:800}
 
-/* Toggle */
+/* Toggle (REMOVED visually; keep styles if used elsewhere) */
 .toggleWrap{display:flex;gap:10px}
 .toggleBtn{border:none;border-radius:28px;padding:9px 16px;background:#2a2e46;color:#d6def6;font-weight:800;cursor:pointer}
 .toggleActive{background:#ffd16b;color:#232427}
@@ -99,7 +127,7 @@
 .loadingMsg{color:#e9eef6;opacity:.9}
 .noClassesMsg{color:#d6def6}
 .softMsg{color:#ffd16b}
-.dim{color:#e9eef6} /* light text for “No data” etc. */
+.dim{color:#e9eef6}
 
 /* ===== Modals ===== */
 .popupBackdrop{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.38);display:flex;align-items:center;justify-content:center}
@@ -130,7 +158,7 @@
 
 /* internal scroll areas for the two tables */
 .modalTableScrollFixed{max-height:34vh;overflow:auto;padding-right:8px}
-.modalTableScrollTall{max-height:42vh} /* used only when recent > 3 */
+.modalTableScrollTall{max-height:42vh}
 
 /* tables inside Insights: fixed layout + left-aligned headers/cells */
 .smallTable{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed}

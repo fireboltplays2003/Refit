@@ -1,80 +1,140 @@
-import React, { useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import styles from "./Classes.module.css";
 import ProfileModal from "../../components/ProfileModal";
 import Footer from "../../components/Footer";
 import UserHeader from "../../pages/UserView/UserHeader";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-const classes = [
-  {
-    name: "Legs",
-    img: "/img/legs.png",
-    description: "Leg day is the foundation! Build muscle, power, and stability with professional trainer-led workouts targeting all the lower body."
-  },
-  {
-    name: "Chest",
-    img: "/img/chest.png",
-    description: "Grow and define your chest with effective bench, dumbbell, and cable routines in a supportive environment."
-  },
-  {
-    name: "Back",
-    img: "/img/back.png",
-    description: "Unlock strength and posture with our back-focused classes. Pull-ups, rows, and more for all levels."
-  },
-  {
-    name: "Pilates",
-    img: "/img/pilates.png",
-    description: "Improve core strength, flexibility, and balance with our Pilates classes. Perfect for all ages and fitness backgrounds."
-  }
-];
+// "Legs & Chest" -> "legs-chest"
+function slugify(s = "") {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+const DEFAULT_IMG = "/img/membershipImage.png";
 
 export default function Classes({ user, setUser }) {
-  const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
+  const [showProfile, setShowProfile] = useState(false);
+  const [types, setTypes] = useState(null); // null = loading
+  const [error, setError] = useState(null);
 
-  // Redirect if not user or not logged in
+  useEffect(() => {
+    if (!user || !user.Role) return;
+    if (user.Role !== "user") navigate("/" + user.Role);
+  }, [user, navigate]);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const { data } = await axios.get("/user/class-types");
+        if (!alive) return;
+        setTypes(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error(
+          "GET /user/class-types failed:",
+          e?.response?.status,
+          e?.response?.data || e?.message
+        );
+        setError("Could not load class types. Showing an empty list for now.");
+        setTypes([]);
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   if (!user || !user.Role) return null;
-  if (user.Role !== 'user') {
-    navigate("/" + user.Role);
-    return null;
-  }
+  if (user.Role !== "user") return null;
+
+  const getImageForType = (typeText) =>
+    `/img/classtypes/${slugify(typeText)}.png`;
+  const handleImgError = (e) => {
+    e.currentTarget.src = DEFAULT_IMG;
+  };
 
   return (
     <>
-      <UserHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
+      <UserHeader
+        user={user}
+        setUser={setUser}
+        onProfile={() => setShowProfile(true)}
+      />
+
       <div className={styles.classesBg}>
         <h1 className={styles.title}>
           <span>Our</span> Classes
         </h1>
+
+        {/* General intro + policies */}
         <div className={styles.welcomeBox}>
-          <h2>Discover Your Strength, Find Your Balance</h2>
+          <h2>Welcome to REFiT</h2>
           <p>
-            At REFiT, we believe fitness is for everyone—whether you’re building muscle, improving endurance, or seeking a more balanced, flexible body. Our certified trainers lead a range of classes designed for all levels:
+            Each class is about <b>1 hour</b> and led by experienced trainers
+            with different specialties. We’re open daily from <b>6:00 AM</b> to{" "}
+            <b>11:00 PM</b>.
           </p>
-          <ul>
-            <li><b>Legs:</b> Boost power and stability for a solid foundation.</li>
-            <li><b>Chest:</b> Sculpt and strengthen with targeted routines.</li>
-            <li><b>Back:</b> Improve posture and unlock upper body strength.</li>
-            <li><b>Pilates:</b> Elevate your core strength, flexibility, and mind-body connection.</li>
-          </ul>
-          <p>
-            Every membership includes access to our modern gym, expert-led classes, and personalized support. With our flexible plans, you choose what fits your lifestyle—plus, track your progress and unlock new challenges each month!
-          </p>
-          <b>Ready to start your journey? Join REFiT today and experience a new level of health and community.</b>
+          <div className={styles.policyBox}>
+            <ul>
+              <li>
+                If you cancel a booked class, we return <b>1 class credit</b> to
+                your balance.
+              </li>
+              <li>
+                You can <b>cancel membership anytime</b>.
+              </li>
+            </ul>
+          </div>
+          <p>Browse the available training options below.</p>
         </div>
-        <p className={styles.subtitle}>
-          Explore our popular class types led by certified trainers.<br />
-          Find what fits your fitness journey.
-        </p>
-        <div className={styles.cardsGrid}>
-          {classes.map((cls) => (
-            <div key={cls.name} className={styles.card}>
-              <img src={cls.img} alt={cls.name} className={styles.cardImg} />
-              <h2 className={styles.cardTitle}>{cls.name}</h2>
-              <p className={styles.cardDesc}>{cls.description}</p>
+
+        {types === null && (
+          <div className={styles.loadingBox}>Loading class types…</div>
+        )}
+        {error && <div className={styles.errorBox}>{error}</div>}
+
+        {/* Scrollable GRID (3 per row on desktop) */}
+        <div className={styles.gridWrap}>
+          {Array.isArray(types) && types.length === 0 && (
+            <div className={styles.emptyBox}>
+              No class types yet. Check back soon.
             </div>
-          ))}
+          )}
+
+          {Array.isArray(types) && types.length > 0 && (
+            <div className={styles.cardsGridScroll}>
+              {types.map((t) => (
+                <div key={t.id} className={styles.card}>
+                  <img
+                    src={getImageForType(t.type)}
+                    alt={t.type}
+                    className={styles.cardImg}
+                    onError={handleImgError}
+                  />
+                  <h2 className={styles.cardTitle}>{t.type}</h2>
+                  <p className={styles.cardDesc}>
+                    Max participants: {t.MaxParticipants}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Register membership section */}
+        <div className={styles.registerBox}>
+          <p className={styles.registerMsg}>
+          Reigster a membership to start booking classes and to have access to all members featuers!          </p>
+          <button
+            className={styles.registerBtn}
+            onClick={() => navigate("/register-membership")}
+          >
+            Register for Membership
+          </button>
+        </div>
+
         <Footer />
         <ProfileModal
           show={showProfile}

@@ -140,5 +140,16 @@ router.post('/send-receipt', async (req, res) => {
     }
   );
 });
+// GET /api/class-types  → id, type, MaxParticipants
+router.get("/class-types", (req, res) => {
+  const sql = "SELECT id, type, MaxParticipants FROM class_types ORDER BY id ASC";
+  db.query(sql, (err, rows) => {
+    if (err) {
+      console.error("Error fetching class types:", err);
+      return res.status(500).json({ error: "Database error" });
+    }
+    res.json(rows || []);
+  });
+});
 
 module.exports = router;

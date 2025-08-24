@@ -1,5 +1,4 @@
-// src/pages/admin/ClassTypesDashboard.jsx
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
@@ -7,6 +6,7 @@ import AdminHeader from "./AdminHeader";
 import Footer from "../../components/Footer";
 import ProfileModal from "../../components/ProfileModal";
 import styles from "./ClassTypesDashboard.module.css";
+
 const images = [
   "/img/img1.jpg",
   "/img/img2.jpg",
@@ -21,31 +21,31 @@ export default function ClassTypesDashboard({ user, setUser }) {
 
   const [bgIndex, setBgIndex] = useState(0);
   const [showProfile, setShowProfile] = useState(false);
-  const [msg, setMsg] = useState(null); // {type:"ok"|"err"|"warn", text}
+
+  // Top banner message under title
+  const [msg, setMsg] = useState(null); // { type: "ok" | "err" | "warn", text }
+  const dismissRef = useRef(null);      // <-- controls auto-dismiss timeout
 
   const [classTypes, setClassTypes] = useState([]);
   const [newType, setNewType] = useState("");
   const [maxParticipants, setMaxParticipants] = useState(10);
   const [editing, setEditing] = useState({}); // { [id]: number|string }
 
-  // gate
+  /* -------- gate -------- */
   useEffect(() => {
     if (user == null) return;
     if (!user || !user.Role) navigate("/login");
     else if (user.Role !== "admin") navigate("/" + user.Role);
   }, [user, navigate]);
 
-  // bg
+  /* -------- background rotate -------- */
   useEffect(() => {
     const id = setInterval(() => setBgIndex((i) => (i + 1) % images.length), 5000);
     return () => clearInterval(id);
   }, []);
 
-  // data
-  useEffect(() => {
-    fetchClassTypes();
-  }, []);
-
+  /* -------- fetch types -------- */
+  useEffect(() => { fetchClassTypes(); }, []);
   function fetchClassTypes() {
     axios
       .get("/admin/class-types", { withCredentials: true })
@@ -53,24 +53,58 @@ export default function ClassTypesDashboard({ user, setUser }) {
       .catch(() => setClassTypes([]));
   }
 
+  /* -------- auto-dismiss banner (no flicker) -------- */
+  useEffect(() => {
+    if (!msg) return;
+    if (dismissRef.current) clearTimeout(dismissRef.current);
+    dismissRef.current = setTimeout(() => {
+      setMsg(null);
+      dismissRef.current = null;
+    }, 1800);
+    return () => {
+      if (dismissRef.current) {
+        clearTimeout(dismissRef.current);
+        dismissRef.current = null;
+      }
+    };
+  }, [msg]);
+
+  /* -------- add type (only duplicate error; ignore empty) -------- */
+  function isDuplicateType(value) {
+    const name = (value || "").trim().toLowerCase();
+    return classTypes.some((ct) => (ct?.type || "").trim().toLowerCase() === name);
+  }
+
   function addClassType() {
-    const t = newType.trim();
+    const trimmed = newType.trim();
+    if (!trimmed) return; // ignore empty
+
+    // frontend duplicate check
+    if (isDuplicateType(trimmed)) {
+      setMsg({ type: "err", text: "This class type already exists." });
+      return; // stop here, no request
+    }
+
     const max = Number(maxParticipants);
-    if (!t || !Number.isFinite(max) || max < 1) {
-      setMsg({ type: "err", text: "Enter a valid type and max participants (≥ 1)." });
+    if (!Number.isFinite(max) || max < 1) {
+      setMsg({ type: "err", text: "Enter a valid max participants (≥ 1)." });
       return;
     }
+
     axios
-      .post("/admin/class-types", { type: t, MaxParticipants: max }, { withCredentials: true })
+      .post("/admin/class-types", { type: trimmed, MaxParticipants: max }, { withCredentials: true })
       .then(() => {
         setNewType("");
         setMsg({ type: "ok", text: "Class type added." });
         fetchClassTypes();
       })
-      .catch(() => setMsg({ type: "err", text: "Failed to add class type." }));
+      .catch(() => {
+        // if we reached here, it's not duplicate (we filtered it already)
+        setMsg({ type: "err", text: "Could not add class type. Try again." });
+      });
   }
 
-  // NEW guarded global update: honors {updated, conflicts}
+  /* -------- global max -------- */
   function updateGlobalMax() {
     const max = Number(maxParticipants);
     if (!Number.isFinite(max) || max < 1) {
@@ -80,26 +114,15 @@ export default function ClassTypesDashboard({ user, setUser }) {
     axios
       .put("/admin/class-types/set-max", { max }, { withCredentials: true })
       .then((r) => {
-        const { updated, conflicts = 0 } = r.data || {};
-        if (conflicts > 0) {
-          setMsg({
-            type: "warn",
-            text:
-              conflicts === 1
-                ? "Heads up: 1 class already has more bookings than the new max. No changes were made."
-                : `Heads up: ${conflicts} classes already have more bookings than the new max. No changes were made.`,
-          });
-        } else if (updated) {
-          setMsg({ type: "ok", text: "Global max updated for all class types." });
-        } else {
-          setMsg({ type: "err", text: "Could not update max." });
-        }
+        const { updated } = r.data || {};
+        if (updated) setMsg({ type: "ok", text: "Global max updated." });
+        else setMsg({ type: "err", text: "Could not update global max." });
         fetchClassTypes();
       })
       .catch(() => setMsg({ type: "err", text: "Failed updating global max." }));
   }
 
-  // NEW guarded per-type update: honors {updated, conflicts}
+  /* -------- per-type max -------- */
   function savePerTypeMax(id) {
     const val = Number(editing[id]);
     if (!Number.isFinite(val) || val < 1) {
@@ -109,25 +132,14 @@ export default function ClassTypesDashboard({ user, setUser }) {
     axios
       .put(`/admin/class-type/${id}/max`, { MaxParticipants: val }, { withCredentials: true })
       .then((r) => {
-        const { updated, conflicts = 0 } = r.data || {};
-        if (conflicts > 0) {
-          setMsg({
-            type: "warn",
-            text:
-              conflicts === 1
-                ? "This type has 1 class with more bookings than the new max. No changes were made."
-                : `This type has ${conflicts} classes with more bookings than the new max. No changes were made.`,
-          });
-        } else if (updated) {
-          setMsg({ type: "ok", text: "Max updated for class type." });
-          setEditing((e) => {
-            const n = { ...e };
-            delete n[id];
-            return n;
-          });
-        } else {
-          setMsg({ type: "err", text: "Could not update type max." });
-        }
+        const { updated } = r.data || {};
+        if (updated) setMsg({ type: "ok", text: "Max updated for class type." });
+        else setMsg({ type: "err", text: "Could not update type max." });
+        setEditing((e) => {
+          const n = { ...e };
+          delete n[id];
+          return n;
+        });
         fetchClassTypes();
       })
       .catch(() => setMsg({ type: "err", text: "Failed updating type max." }));
@@ -139,7 +151,12 @@ export default function ClassTypesDashboard({ user, setUser }) {
         <div
           key={i}
           className={styles.bgImg}
-          style={{ backgroundImage: `url(${img})`, opacity: bgIndex === i ? 1 : 0, zIndex: 1, transition: "opacity 1.2s" }}
+          style={{
+            backgroundImage: `url(${img})`,
+            opacity: bgIndex === i ? 1 : 0,
+            zIndex: 1,
+            transition: "opacity 1.2s",
+          }}
         />
       ))}
       <div className={styles.overlay} />
@@ -147,10 +164,16 @@ export default function ClassTypesDashboard({ user, setUser }) {
       <AdminHeader user={user} setUser={setUser} onProfile={() => setShowProfile(true)} />
 
       <main className={styles.mainContent}>
+        {/* Top error/success just under the title */}
         {msg && (
           <div
-            className={msg.type === "ok" ? styles.bannerOk : styles.bannerErr}
-            onAnimationEnd={() => setTimeout(() => setMsg(null), 1800)}
+            className={
+              msg.type === "ok"
+                ? styles.bannerOk
+                : msg.type === "warn"
+                ? styles.bannerWarn
+                : styles.bannerErr
+            }
           >
             {msg.text}
           </div>
@@ -161,12 +184,13 @@ export default function ClassTypesDashboard({ user, setUser }) {
             <h2 className={styles.sectionTitle}>Class Types Dashboard</h2>
             <div className={styles.sectionDivider} />
 
+            {/* Controls */}
             <div className={styles.filtersRow}>
               <div className={styles.filterGroup} style={{ flex: 1 }}>
                 <label className={styles.filterLabel}>New Type:</label>
                 <input
                   className={styles.searchInput}
-                  placeholder="e.g. Yoga, HIIT, Pilates…"
+                  placeholder="e.g. Yoga, HIIT…"
                   value={newType}
                   onChange={(e) => setNewType(e.target.value)}
                 />
@@ -191,12 +215,17 @@ export default function ClassTypesDashboard({ user, setUser }) {
                 <button className={styles.btnSecondary} onClick={addClassType}>
                   Add Type
                 </button>
-                <button className={styles.btnSecondary} onClick={updateGlobalMax} style={{ marginLeft: 8 }}>
+                <button
+                  className={styles.btnSecondary}
+                  onClick={updateGlobalMax}
+                  style={{ marginLeft: 8 }}
+                >
                   Set Global Max
                 </button>
               </div>
             </div>
 
+            {/* Table */}
             <div className={styles.tableWrap}>
               <table className={styles.peopleTable} style={{ tableLayout: "fixed", width: "100%" }}>
                 <colgroup>
@@ -207,8 +236,8 @@ export default function ClassTypesDashboard({ user, setUser }) {
                 <thead>
                   <tr>
                     <th style={{ textAlign: "left" }}>Type</th>
-                    <th className={styles.thMax} style={{ textAlign: "left" }}>Max Participants</th>
-                    <th className={styles.thEdit} style={{ textAlign: "left" }}>Edit</th>
+                    <th className={styles.thMax}>Max Participants</th>
+                    <th className={styles.thEdit}>Edit</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -218,7 +247,7 @@ export default function ClassTypesDashboard({ user, setUser }) {
                       return (
                         <tr key={ct.id}>
                           <td style={{ textAlign: "left" }}>{ct.type}</td>
-                          <td style={{ textAlign: "left" }}>
+                          <td className={styles.tdMax}>
                             {isEditing ? (
                               <input
                                 type="number"
@@ -240,7 +269,7 @@ export default function ClassTypesDashboard({ user, setUser }) {
                               ct.MaxParticipants
                             )}
                           </td>
-                          <td style={{ textAlign: "left" }}>
+                          <td className={styles.tdEdit}>
                             {!isEditing ? (
                               <button
                                 className={styles.badgeBtn}
@@ -289,7 +318,6 @@ export default function ClassTypesDashboard({ user, setUser }) {
       </main>
 
       <Footer />
-
       <ProfileModal
         show={showProfile}
         onClose={() => setShowProfile(false)}
