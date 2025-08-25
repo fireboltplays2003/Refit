@@ -103,7 +103,7 @@ export default function AdminView({ user, setUser }) {
   const [anFrom, setAnFrom] = useState("");
   const [anTo, setAnTo] = useState("");
 
-  // pending trainers
+  // pending trainers (On Hold)
   const [pending, setPending] = useState([]);
   const [loadingPending, setLoadingPending] = useState(true);
 
@@ -167,6 +167,7 @@ export default function AdminView({ user, setUser }) {
       .finally(() => setLoadingPrev(false));
   }, []);
 
+  // Pending trainers load
   useEffect(() => {
     setLoadingPending(true);
     axios
@@ -466,6 +467,75 @@ export default function AdminView({ user, setUser }) {
           </section>
         </div>
 
+        {/* ===================== TRAINER REQUESTS (ON HOLD) — WITH SCROLL ===================== */}
+        <div className={styles.classSectionContainer}>
+          <section className={styles.classesSection}>
+            <h2 className={styles.sectionTitle}>Trainer Requests (On Hold)</h2>
+            <div className={styles.sectionDivider} />
+            {loadingPending ? (
+              <div className={styles.loadingMsg}>Loading pending trainers...</div>
+            ) : pending.length === 0 ? (
+              <div className={`${styles.noClassesMsg} ${styles.softMsg}`}>No pending trainer requests.</div>
+            ) : (
+              <div
+                className={styles.pendingScroll}
+                style={{
+                  maxHeight: "50vh",
+                  overflowY: "auto",
+                  overflowX: "hidden",
+                  paddingRight: "8px",
+                }}
+              >
+                <div
+                  className={styles.pendingList}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+                    gap: "12px",
+                    alignContent: "start",
+                  }}
+                >
+                  {pending.map((t) => (
+                    <div className={styles.pendingCard} key={t.UserID}>
+                      <div className={styles.pendingTop}>
+                        <div className={styles.pendingName}>
+                          {t.FirstName} {t.LastName}
+                        </div>
+                        <div className={styles.pendingContact}>
+                          {t.Email} • {t.Phone}
+                        </div>
+                        <div className={styles.pendingMeta}>
+                          Birthdate: {toDisplayDate(t.DateOfBirth)}
+                        </div>
+                      </div>
+                      <div className={styles.pendingActions}>
+                        <button
+                          className={styles.btnSecondary}
+                          onClick={() => downloadCertification(t.UserID)}
+                        >
+                          Download CV
+                        </button>
+                        <button
+                          className={styles.btnApprove}
+                          onClick={() => approveTrainer(t.UserID)}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className={styles.btnReject}
+                          onClick={() => rejectTrainer(t.UserID)}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        </div>
+
         {/* ===================== ANALYTICS ===================== */}
         <div className={styles.classSectionContainer}>
           <section className={styles.classesSection}>
@@ -508,14 +578,23 @@ export default function AdminView({ user, setUser }) {
                   <div className={styles.statSub}>“Utilization” = seats filled / seats offered.</div>
                   <div className={styles.barList}>
                     {analytics.classTypes.slice(0, 5).map((row, i) => {
-                      const lead = Math.max(0.01, analytics.classTypes[0]?.fillRate || analytics.classTypes[0]?.utilization || 0.01);
-                      const util = (row.fillRate ?? row.utilization ?? 0);
+                      const lead = Math.max(
+                        0.01,
+                        analytics.classTypes[0]?.fillRate ||
+                          analytics.classTypes[0]?.utilization ||
+                          0.01
+                      );
+                      const util = row.fillRate ?? row.utilization ?? 0;
                       const pct = Math.min(100, Math.round((util / lead) * 100));
                       const utilPct = Math.round(util * 100);
                       return (
                         <div key={row.id ?? i} className={styles.barRow}>
-                          <div className={styles.barLabel}>{i + 1}. {row.type}</div>
-                          <div className={styles.barTrack}><div className={styles.barFill} style={{ width: pct + "%" }} /></div>
+                          <div className={styles.barLabel}>
+                            {i + 1}. {row.type}
+                          </div>
+                          <div className={styles.barTrack}>
+                            <div className={styles.barFill} style={{ width: pct + "%" }} />
+                          </div>
                           <div className={styles.smallNote}>Utilization: {utilPct}%</div>
                         </div>
                       );
@@ -529,16 +608,24 @@ export default function AdminView({ user, setUser }) {
                     <div>
                       <div className={styles.trainersColTitle}>Top</div>
                       {analytics.topTrainers.slice(0, 3).map((t, i) => (
-                        <div key={t.UserID} className={styles.trainerRow}>{i + 1}. {t.FirstName} {t.LastName}</div>
+                        <div key={t.UserID} className={styles.trainerRow}>
+                          {i + 1}. {t.FirstName} {t.LastName}
+                        </div>
                       ))}
-                      {analytics.topTrainers.length === 0 && <div className={styles.dim}>No data</div>}
+                      {analytics.topTrainers.length === 0 && (
+                        <div className={styles.dim}>No data</div>
+                      )}
                     </div>
                     <div>
                       <div className={styles.trainersColTitle}>Least</div>
                       {analytics.leastTrainers.slice(0, 3).map((t, i) => (
-                        <div key={t.UserID} className={styles.trainerRow}>{i + 1}. {t.FirstName} {t.LastName}</div>
+                        <div key={t.UserID} className={styles.trainerRow}>
+                          {i + 1}. {t.FirstName} {t.LastName}
+                        </div>
                       ))}
-                      {analytics.leastTrainers.length === 0 && <div className={styles.dim}>No data</div>}
+                      {analytics.leastTrainers.length === 0 && (
+                        <div className={styles.dim}>No data</div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -548,7 +635,9 @@ export default function AdminView({ user, setUser }) {
                   <div className={styles.pillWrap}>
                     {(analytics?.popularTimes30 || analytics?.popularTimes || []).length ? (
                       (analytics?.popularTimes30 || analytics?.popularTimes).map((slot) => (
-                        <div key={slot.hourSlot} className={styles.pill}>{slot.hourSlot}</div>
+                        <div key={slot.hourSlot} className={styles.pill}>
+                          {slot.hourSlot}
+                        </div>
                       ))
                     ) : (
                       <div className={styles.dim}>No data</div>
@@ -593,7 +682,10 @@ export default function AdminView({ user, setUser }) {
                 <LightSelect
                   className={styles.selectInline}
                   width={270}
-                  options={[{ value: "", label: "All Types" }, ...classTypes.map((ct) => ({ value: ct.id, label: ct.type }))]}
+                  options={[
+                    { value: "", label: "All Types" },
+                    ...classTypes.map((ct) => ({ value: ct.id, label: ct.type })),
+                  ]}
                   value={upcomingType}
                   onChange={setUpcomingType}
                   placeholder="All Types"
@@ -605,7 +697,9 @@ export default function AdminView({ user, setUser }) {
             {loadingUpcoming ? (
               <div className={styles.loadingMsg}>Loading classes...</div>
             ) : upcomingFiltered.length === 0 ? (
-              <div className={`${styles.noClassesMsg} ${styles.softMsg}`}>No classes for the selected filters.</div>
+              <div className={`${styles.noClassesMsg} ${styles.softMsg}`}>
+                No classes for the selected filters.
+              </div>
             ) : (
               <div className={styles.classListHorizontal}>
                 {upcomingFiltered.map((cls) => {
@@ -613,7 +707,9 @@ export default function AdminView({ user, setUser }) {
                   return (
                     <div className={styles.classCard} key={cls.ClassID}>
                       <div className={styles.classMainInfo}>
-                        <span className={styles.classType}>{cls.ClassTypeName || cls.ClassType || "Class"}</span>
+                        <span className={styles.classType}>
+                          {cls.ClassTypeName || cls.ClassType || "Class"}
+                        </span>
                         <span className={styles.classDateTime}>
                           {toDisplayDate(cls.Schedule)} at {cls.time?.slice(0, 5)}
                         </span>
@@ -628,7 +724,10 @@ export default function AdminView({ user, setUser }) {
                         </span>
                       </div>
 
-                      <button className={styles.wideBtn} onClick={() => openMembersModal(cls.ClassID)}>
+                      <button
+                        className={styles.wideBtn}
+                        onClick={() => openMembersModal(cls.ClassID)}
+                      >
                         View Members
                       </button>
 
@@ -674,7 +773,10 @@ export default function AdminView({ user, setUser }) {
                 <LightSelect
                   className={styles.selectInline}
                   width={270}
-                  options={[{ value: "", label: "All Types" }, ...classTypes.map((ct) => ({ value: ct.id, label: ct.type }))]}
+                  options={[
+                    { value: "", label: "All Types" },
+                    ...classTypes.map((ct) => ({ value: ct.id, label: ct.type })),
+                  ]}
                   value={prevType}
                   onChange={setPrevType}
                   placeholder="All Types"
@@ -686,13 +788,17 @@ export default function AdminView({ user, setUser }) {
             {loadingPrev ? (
               <div className={styles.loadingMsg}>Loading classes...</div>
             ) : prevFiltered.length === 0 ? (
-              <div className={`${styles.noClassesMsg} ${styles.softMsg}`}>No classes found for previous month.</div>
+              <div className={`${styles.noClassesMsg} ${styles.softMsg}`}>
+                No classes found for previous month.
+              </div>
             ) : (
               <div className={styles.classListHorizontal}>
                 {prevFiltered.map((cls) => (
                   <div className={styles.classCard} key={cls.ClassID}>
                     <div className={styles.classMainInfo}>
-                      <span className={styles.classType}>{cls.ClassTypeName || cls.ClassType || "Class"}</span>
+                      <span className={styles.classType}>
+                        {cls.ClassTypeName || cls.ClassType || "Class"}
+                      </span>
                       <span className={styles.classDateTime}>
                         {toDisplayDate(cls.Schedule)} at {cls.time?.slice(0, 5)}
                       </span>
@@ -707,12 +813,17 @@ export default function AdminView({ user, setUser }) {
                       </span>
                     </div>
 
-                    <button className={styles.wideBtn} onClick={() => openMembersModal(cls.ClassID)}>
+                    <button
+                      className={styles.wideBtn}
+                      onClick={() => openMembersModal(cls.ClassID)}
+                    >
                       View Members
                     </button>
 
                     {getUpcomingLabel(cls.Schedule, cls.time) && (
-                      <span className={styles.labelBtn}>{getUpcomingLabel(cls.Schedule, cls.time)}</span>
+                      <span className={styles.labelBtn}>
+                        {getUpcomingLabel(cls.Schedule, cls.time)}
+                      </span>
                     )}
                   </div>
                 ))}
@@ -725,7 +836,9 @@ export default function AdminView({ user, setUser }) {
         {membersOpen && (
           <div className={styles.popupBackdrop} onClick={closeMembersModal}>
             <div className={styles.membersModal} onClick={(e) => e.stopPropagation()}>
-              <button className={styles.modalClose} onClick={closeMembersModal}>&times;</button>
+              <button className={styles.modalClose} onClick={closeMembersModal}>
+                &times;
+              </button>
               <div className={styles.membersModalTitle}>Class Members</div>
 
               {membersLoading ? (
@@ -743,7 +856,9 @@ export default function AdminView({ user, setUser }) {
                     <tbody>
                       {members.map((m) => (
                         <tr key={m.UserID}>
-                          <td>{m.FirstName} {m.LastName}</td>
+                          <td>
+                            {m.FirstName} {m.LastName}
+                          </td>
                           <td>{m.Email}</td>
                           <td>{m.Phone}</td>
                         </tr>
@@ -752,7 +867,9 @@ export default function AdminView({ user, setUser }) {
                   </table>
                 </div>
               ) : (
-                <div className={`${styles.noClassesMsg} ${styles.softMsg}`}>No members booked</div>
+                <div className={`${styles.noClassesMsg} ${styles.softMsg}`}>
+                  No members booked
+                </div>
               )}
             </div>
           </div>
@@ -762,7 +879,9 @@ export default function AdminView({ user, setUser }) {
         {insightsOpen && (
           <div className={styles.popupBackdrop} onClick={() => setInsightsOpen(false)}>
             <div className={styles.insightsModal} onClick={(e) => e.stopPropagation()}>
-              <button className={styles.modalClose} onClick={() => setInsightsOpen(false)}>&times;</button>
+              <button className={styles.modalClose} onClick={() => setInsightsOpen(false)}>
+                &times;
+              </button>
               <div className={styles.insightsTitle}>Trainer Insights (last 30 days)</div>
 
               {insightsLoading ? (
@@ -775,9 +894,23 @@ export default function AdminView({ user, setUser }) {
                     <div className={styles.insightsCard}>
                       <div className={styles.insightsCardTitle}>Totals</div>
                       <div className={styles.totalsRow}>
-                        <div><span className={styles.totalNum}>{insights.totals.classes}</span><span className={styles.totalLbl}>Classes</span></div>
-                        <div><span className={styles.totalNum}>{insights.totals.bookings}</span><span className={styles.totalLbl}>Bookings</span></div>
-                        <div><span className={styles.totalNum}>{Math.round((insights.totals.avgFill ?? insights.totals.avgUtilization ?? 0) * 100)}%</span><span className={styles.totalLbl}>Avg Utilization</span></div>
+                        <div>
+                          <span className={styles.totalNum}>{insights.totals.classes}</span>
+                          <span className={styles.totalLbl}>Classes</span>
+                        </div>
+                        <div>
+                          <span className={styles.totalNum}>{insights.totals.bookings}</span>
+                          <span className={styles.totalLbl}>Bookings</span>
+                        </div>
+                        <div>
+                          <span className={styles.totalNum}>
+                            {Math.round(
+                              (insights.totals.avgFill ?? insights.totals.avgUtilization ?? 0) * 100
+                            )}
+                            %
+                          </span>
+                          <span className={styles.totalLbl}>Avg Utilization</span>
+                        </div>
                       </div>
                     </div>
 
@@ -785,9 +918,13 @@ export default function AdminView({ user, setUser }) {
                       <div className={styles.insightsCardTitle}>Top Class Types</div>
                       <ul className={styles.simpleList}>
                         {insights.topTypes.map((t, i) => (
-                          <li key={i}>{i + 1}. {t.type}</li>
+                          <li key={i}>
+                            {i + 1}. {t.type}
+                          </li>
                         ))}
-                        {insights.topTypes.length === 0 && <li className={styles.dim}>No data</li>}
+                        {insights.topTypes.length === 0 && (
+                          <li className={styles.dim}>No data</li>
+                        )}
                       </ul>
                     </div>
 
@@ -796,7 +933,9 @@ export default function AdminView({ user, setUser }) {
                       <div className={styles.pillWrap}>
                         {insights.popularTimes.length ? (
                           insights.popularTimes.map((pt, i) => (
-                            <div key={i} className={styles.pill}>{pt.hourSlot}</div>
+                            <div key={i} className={styles.pill}>
+                              {pt.hourSlot}
+                            </div>
                           ))
                         ) : (
                           <div className={styles.dim}>No data</div>
@@ -810,13 +949,20 @@ export default function AdminView({ user, setUser }) {
                       <div className={styles.totalsRow}>
                         <div>
                           <span className={styles.totalNum}>
-                            {insights.totals.classes > 0 ? Math.round((insights.totals.bookings / insights.totals.classes) * 10) / 10 : 0}
+                            {insights.totals.classes > 0
+                              ? Math.round(
+                                  (insights.totals.bookings / insights.totals.classes) * 10
+                                ) / 10
+                              : 0}
                           </span>
                           <span className={styles.totalLbl}>Avg Class Size</span>
                         </div>
                         <div>
                           <span className={styles.totalNum}>
-                            {Math.round((insights.totals.avgFill ?? insights.totals.avgUtilization ?? 0) * 100)}%
+                            {Math.round(
+                              (insights.totals.avgFill ?? insights.totals.avgUtilization ?? 0) * 100
+                            )}
+                            %
                           </span>
                           <span className={styles.totalLbl}>Avg Fill</span>
                         </div>
@@ -832,16 +978,32 @@ export default function AdminView({ user, setUser }) {
                             <col style={{ width: "35%" }} />
                             <col style={{ width: "25%" }} />
                           </colgroup>
-                          <thead><tr><th>When</th><th>Type</th><th>Booked</th></tr></thead>
+                          <thead>
+                            <tr>
+                              <th>When</th>
+                              <th>Type</th>
+                              <th>Booked</th>
+                            </tr>
+                          </thead>
                           <tbody>
-                            {insights.upcoming.map(u => (
+                            {insights.upcoming.map((u) => (
                               <tr key={u.ClassID}>
-                                <td>{toDisplayDate(u.Schedule)} {u.time?.slice(0,5)}</td>
+                                <td>
+                                  {toDisplayDate(u.Schedule)} {u.time?.slice(0, 5)}
+                                </td>
                                 <td>{u.type}</td>
-                                <td>{u.bookedCount}/{u.MaxParticipants}</td>
+                                <td>
+                                  {u.bookedCount}/{u.MaxParticipants}
+                                </td>
                               </tr>
                             ))}
-                            {insights.upcoming.length === 0 && <tr><td colSpan={3} className={styles.dim}>None</td></tr>}
+                            {insights.upcoming.length === 0 && (
+                              <tr>
+                                <td colSpan={3} className={styles.dim}>
+                                  None
+                                </td>
+                              </tr>
+                            )}
                           </tbody>
                         </table>
                       </div>
@@ -849,23 +1011,43 @@ export default function AdminView({ user, setUser }) {
 
                     <div className={styles.insightsCardWide}>
                       <div className={styles.insightsCardTitle}>Recent</div>
-                      <div className={`${styles.modalTableScrollFixed} ${insights.recent.length > 3 ? styles.modalTableScrollTall : ""}`}>
+                      <div
+                        className={`${styles.modalTableScrollFixed} ${
+                          insights.recent.length > 3 ? styles.modalTableScrollTall : ""
+                        }`}
+                      >
                         <table className={styles.smallTable}>
                           <colgroup>
                             <col style={{ width: "40%" }} />
                             <col style={{ width: "35%" }} />
                             <col style={{ width: "25%" }} />
                           </colgroup>
-                          <thead><tr><th>When</th><th>Type</th><th>Booked</th></tr></thead>
+                          <thead>
+                            <tr>
+                              <th>When</th>
+                              <th>Type</th>
+                              <th>Booked</th>
+                            </tr>
+                          </thead>
                           <tbody>
-                            {insights.recent.map(u => (
+                            {insights.recent.map((u) => (
                               <tr key={u.ClassID}>
-                                <td>{toDisplayDate(u.Schedule)} {u.time?.slice(0,5)}</td>
+                                <td>
+                                  {toDisplayDate(u.Schedule)} {u.time?.slice(0, 5)}
+                                </td>
                                 <td>{u.type}</td>
-                                <td>{u.bookedCount}/{u.MaxParticipants}</td>
+                                <td>
+                                  {u.bookedCount}/{u.MaxParticipants}
+                                </td>
                               </tr>
                             ))}
-                            {insights.recent.length === 0 && <tr><td colSpan={3} className={styles.dim}>None</td></tr>}
+                            {insights.recent.length === 0 && (
+                              <tr>
+                                <td colSpan={3} className={styles.dim}>
+                                  None
+                                </td>
+                              </tr>
+                            )}
                           </tbody>
                         </table>
                       </div>
@@ -879,7 +1061,12 @@ export default function AdminView({ user, setUser }) {
       </main>
 
       <Footer />
-      <ProfileModal show={showProfile} onClose={() => setShowProfile(false)} userData={user} onUpdate={setUser} />
+      <ProfileModal
+        show={showProfile}
+        onClose={() => setShowProfile(false)}
+        userData={user}
+        onUpdate={setUser}
+      />
     </div>
   );
 }
