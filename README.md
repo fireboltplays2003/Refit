@@ -1,3 +1,4 @@
+````markdown
 # 🏋️ Gym Management System
 
 A full-stack web application for managing gym memberships, classes, trainers, and payments.  
@@ -28,7 +29,6 @@ Integrated with **PayPal** for membership payments.
 - Manage users, members, and trainers  
 - Define and edit class types  
 - Assign trainers and set class capacities  
-- Delete users and trainers if necessary  
 - Analytics dashboard with insights  
 
 ### 👥 Guests
@@ -48,46 +48,67 @@ Integrated with **PayPal** for membership payments.
 
 ---
 
-## 📂 Project Structure
-
-- `ReactArticles/` → React frontend  
-- `NodeArticles/` → Node.js backend with Express routers  
-- `database/` → MySQL schema and migrations  
-
----
-
 ## ⚡ Getting Started
 
 ### 1. Clone the repo
 ```bash
 git clone https://github.com/YOUR-USERNAME/Gym-management-system-project.git
 cd Gym-management-system-project
-2. Setup backend
-bash
-Copy code
+````
+
+### 2. Setup backend
+
+```bash
 cd NodeArticles
 npm install
 npm start
-3. Setup frontend
-bash
-Copy code
+```
+
+### 3. Setup frontend
+
+```bash
 cd ReactArticles
 npm install
 npm start
-4. Database
-Import the MySQL schema from /database/schema.sql
+```
 
-Update .env with your MySQL credentials
+### 4. Database
 
-💳 Payments
-This system uses PayPal Sandbox for test transactions.
-Update your PayPal client ID and secret in the backend .env file.
+* Import the MySQL schema from `/database/schema.sql`
+* Update `.env` with your MySQL credentials
 
-📸 Screenshots
-(Add images of your UI here – login, class booking, dashboard, etc.)
+---
 
-👥 Contributors
-@fireboltplays2003 – Backend, DB, PayPal integration
-<img width="2558" height="1237" alt="image" src="https://github.com/user-attachments/assets/94887e04-cbe2-4905-b97c-d005e0cdb63c" />
+## 💳 Payments
 
-@eliasthedab17 – Frontend, UI/UX, Class management
+This system uses **PayPal Sandbox** for test transactions.
+Update your PayPal client ID and secret in the backend `.env` file.
+
+---
+
+## 📸 Screenshots
+
+Paste your images here like this:
+
+```markdown
+### Trainer View
+<img width="2558" height="1237" alt="image" src="https://github.com/user-attachments/assets/0f3bec67-8f56-4643-8540-43375770cabd" />
+
+
+### Member Dashboard
+![Member Dashboard](images/member-dashboard.png)
+
+### Admin Panel
+![Admin Panel](images/admin-panel.png)
+```
+
+➡️ Replace `images/trainer-view.png` with the actual path where you put your screenshots in the repo (e.g. inside an `/images` folder).
+
+---
+
+```
+
+👉 Just create a folder in your repo called **`images`**, drop your screenshots there, and update the file names.  
+
+Do you want me to also give you the exact GitHub Markdown syntax for linking raw images if you prefer uploading them through GitHub instead of storing in the repo?
+```
