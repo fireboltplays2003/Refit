@@ -50,7 +50,7 @@ Integrated with **PayPal** for membership payments.
 ## ⚡ Getting Started
 
 ### 1. Clone the repo
-```bash
+bash
 git clone https://github.com/YOUR-USERNAME/Gym-management-system-project.git
 cd Gym-management-system-project
 2. Setup backend
