@@ -470,7 +470,7 @@ export default function AdminView({ user, setUser }) {
         {/* ===================== TRAINER REQUESTS (ON HOLD) — WITH SCROLL ===================== */}
         <div className={styles.classSectionContainer}>
           <section className={styles.classesSection}>
-            <h2 className={styles.sectionTitle}>Trainer Requests (On Hold)</h2>
+            <h2 className={styles.sectionTitle}>Trainer Requests</h2>
             <div className={styles.sectionDivider} />
             {loadingPending ? (
               <div className={styles.loadingMsg}>Loading pending trainers...</div>

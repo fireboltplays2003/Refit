@@ -28,7 +28,7 @@ export default function RegisterMembership({ user, setUser }) {
   const paypalBtnsInstance = useRef(null);
 
   useEffect(() => {
-    if (justRegisteredAndLoggedOut) return; // Block navigation after logout
+    if (justRegisteredAndLoggedOut) return;
     if (user && user.Role === "user") {
       setAuthorized(true);
     } else if (user && user.Role && user.Role !== "user") {
@@ -72,19 +72,44 @@ export default function RegisterMembership({ user, setUser }) {
         try {
           await axios.post("/api/paypal/capture-order", { orderID: data.orderID });
 
-          // Register membership and update role
-          await axios.post("/user/register-membership", {
-            userId: user.UserID,
-            membershipTypeId: selectedPlan.id,
-            months: duration
-          }, { withCredentials: true });
+          // 1) Register membership and get dates for the receipt
+          const regRes = await axios.post(
+            "/user/register-membership",
+            {
+              userId: user.UserID,
+              membershipTypeId: selectedPlan.id,
+              months: duration
+            },
+            { withCredentials: true }
+          );
+          const { startDate, endDate } = regRes.data || {};
 
-          await axios.post("/user/update-role", {
-            userId: user.UserID,
-            newRole: "member"
-          }, { withCredentials: true });
+          // 2) Update role
+          await axios.post(
+            "/user/update-role",
+            { userId: user.UserID, newRole: "member" },
+            { withCredentials: true }
+          );
 
-          // Log out
+          // 3) Send purchase receipt (NEW)
+          try {
+            await axios.post(
+              "/user/send-receipt",
+              {
+                userId: user.UserID,
+                planName: selectedPlan.name,
+                duration,
+                total: finalPrice,
+                startDate,
+                endDate,
+              },
+              { withCredentials: true }
+            );
+          } catch (mailErr) {
+            console.error("Receipt email failed:", mailErr);
+          }
+
+          // 4) Log out
           await axios.post("/logout", {}, { withCredentials: true });
           setUser({});
           setJustRegisteredAndLoggedOut(true);
@@ -125,7 +150,6 @@ export default function RegisterMembership({ user, setUser }) {
     setError("");
   };
 
-  // If not authorized or just logged out, do not render the PayPal logic.
   if (!authorized && !justRegisteredAndLoggedOut) return null;
 
   return (

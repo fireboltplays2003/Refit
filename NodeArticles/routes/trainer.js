@@ -216,8 +216,7 @@ router.post("/create-class", (req, res) => {
 
 
 
-// UPDATE a class (with email notifications)
-// UPDATE a class (with smart email change reporting)
+// UPDATE a class (with clear formatted email to members)
 router.put("/class/:classId", (req, res) => {
   const user = req.session.user;
   if (!user || user.Role !== "trainer") return res.status(401).json({ error: "Unauthorized" });
@@ -230,98 +229,98 @@ router.put("/class/:classId", (req, res) => {
 
   schedule = String(schedule).slice(0, 10);
 
-  db.query("SELECT * FROM classes WHERE ClassID = ? AND TrainerID = ?", [classId, trainerId], (err, classRows) => {
-    if (err || !classRows.length) return res.status(404).json({ error: "Class not found or not yours" });
-    const oldClass = classRows[0];
-    const oldDate = oldClass.Schedule ? String(oldClass.Schedule).slice(0, 10) : "";
-    const oldTime = oldClass.time ? oldClass.time.slice(0, 5) : "";
-    const oldType = oldClass.ClassType;
+  // 1) Load old class details
+  db.query(
+    `SELECT c.*, ct.type AS ClassTypeName, u.FirstName AS TrainerFirstName, u.LastName AS TrainerLastName
+     FROM classes c
+     JOIN class_types ct ON c.ClassType = ct.id
+     JOIN users u ON c.TrainerID = u.UserID
+     WHERE c.ClassID = ? AND c.TrainerID = ?`,
+    [classId, trainerId],
+    (err, classRows) => {
+      if (err || !classRows.length) return res.status(404).json({ error: "Class not found or not yours" });
 
-    const dateChanged = oldDate !== schedule;
-    const timeChanged = oldTime !== time;
-    const typeChanged = String(oldType) !== String(classTypeId);
+      const oldClass = classRows[0];
+      const oldDate = oldClass.Schedule ? String(oldClass.Schedule).slice(0, 10) : "";
+      const oldTime = oldClass.time ? oldClass.time.slice(0, 5) : "";
+      const oldType = oldClass.ClassType;
 
-    if (!dateChanged && !timeChanged && !typeChanged) {
-      return res.status(400).json({ error: "No changes detected" });
-    }
+      const dateChanged = oldDate !== schedule;
+      const timeChanged = oldTime !== time;
+      const typeChanged = String(oldType) !== String(classTypeId);
 
-    db.query("SELECT type FROM class_types WHERE id = ?", [classTypeId], (errType, rowsType) => {
-      const classTypeName = rowsType && rowsType[0] ? rowsType[0].type : `TypeID ${classTypeId}`;
-      db.query(
-        "UPDATE classes SET ClassType = ?, Schedule = ?, time = ? WHERE ClassID = ? AND TrainerID = ?",
-        [classTypeId, schedule, time, classId, trainerId],
-        (err2, result) => {
-          if (err2) {
-            console.error("DB Update Error:", err2);
-            return res.status(500).json({ error: "Database error" });
-          }
-          if (result.affectedRows === 0) {
-            return res.status(404).json({ error: "Class not found or not owned by trainer" });
-          }
+      if (!dateChanged && !timeChanged && !typeChanged) {
+        return res.status(400).json({ error: "No changes detected" });
+      }
 
-          db.query(
-            `SELECT u.Email, u.FirstName, u.LastName 
-              FROM members_classes mc
-              JOIN users u ON mc.MemberID = u.UserID
-              WHERE mc.ClassID = ?`,
-            [classId],
-            async (err3, members) => {
-              if (!err3 && Array.isArray(members) && members.length) {
-                const transporter = getTransporter();
-                await Promise.all(members.map(async member => {
-                  // Smart email message:
-                  let message = `<h2>Hello ${member.FirstName} ${member.LastName},</h2>
-                      <p>Your booked class has been <b>updated</b> by the trainer:</p>
-                      <ul>`;
-                  if (typeChanged) message += `<li><strong>New Class Type:</strong> ${classTypeName}</li>`;
-                  if (dateChanged) message += `<li><strong>New Date:</strong> ${schedule}</li>`;
-                  if (timeChanged) message += `<li><strong>New Time:</strong> ${time}</li>`;
-                  message += `</ul>`;
+      // 2) Get new class type name
+      db.query("SELECT type FROM class_types WHERE id = ?", [classTypeId], (errType, rowsType) => {
+        const newClassTypeName = rowsType && rowsType[0] ? rowsType[0].type : `TypeID ${classTypeId}`;
 
-                  // If only type changed
-                  if (typeChanged && !dateChanged && !timeChanged) {
-                    message += `<p>The date and time remain as before.</p>`;
-                  }
-                  // If only date changed
-                  if (!typeChanged && dateChanged && !timeChanged) {
-                    message += `<p>The class type and time remain as before.</p>`;
-                  }
-                  // If only time changed
-                  if (!typeChanged && !dateChanged && timeChanged) {
-                    message += `<p>The class type and date remain as before.</p>`;
-                  }
-                  message += `
-                      <p>Please check your dashboard for the updated class info.</p>
-                      <hr/>
-                      <p>Refit Gym Team</p>
-                    `;
-                  const mailOptions = {
-                    from: `"Refit Gym" <${process.env.GMAIL_USER}>`,
-                    to: member.Email,
-                    subject: 'Refit Gym: Class Updated',
-                    html: message
-                  };
-                  try {
-                    await transporter.sendMail(mailOptions);
-                  } catch (emailErr) {
-                    console.error(`[MAIL ERROR] Failed to send to: ${member.Email}`);
-                    console.error('[MAIL ERROR] Details:', emailErr);
-                    if (emailErr.response) {
-                      console.error('[MAIL ERROR] SMTP Response:', emailErr.response);
-                    }
-                  }
-                }));
-              }
-              res.json({ message: "Class updated and members notified." });
+        // 3) Update class
+        db.query(
+          "UPDATE classes SET ClassType = ?, Schedule = ?, time = ? WHERE ClassID = ? AND TrainerID = ?",
+          [classTypeId, schedule, time, classId, trainerId],
+          (err2, result) => {
+            if (err2) return res.status(500).json({ error: "Database error" });
+            if (result.affectedRows === 0) {
+              return res.status(404).json({ error: "Class not found or not owned by trainer" });
             }
-          );
-        }
-      );
-    });
-  });
+
+            // 4) Notify members
+            db.query(
+              `SELECT u.Email, u.FirstName, u.LastName 
+               FROM members_classes mc
+               JOIN users u ON mc.MemberID = u.UserID
+               WHERE mc.ClassID = ?`,
+              [classId],
+              async (err3, members) => {
+                if (!err3 && Array.isArray(members) && members.length) {
+                  const transporter = getTransporter();
+                  await Promise.all(members.map(async member => {
+                    let message = `
+                      <h2>Hello ${member.FirstName} ${member.LastName},</h2>
+                      <p>Your booked class has been <b>updated</b> by the trainer:</p>
+                      <ul>
+                        <li><b>Trainer:</b> ${oldClass.TrainerFirstName} ${oldClass.TrainerLastName}</li>
+                        <li><b>Class Type:</b> ${newClassTypeName}</li>
+                        <li><b>Date:</b> ${new Date(schedule).toLocaleDateString("en-GB")}</li>
+                        <li><b>Time:</b> ${time}</li>
+                      </ul>
+                    `;
+
+                    // Smart note about what changed
+                    if (dateChanged) message += `<p><b>New Date:</b> ${schedule}</p>`;
+                    if (timeChanged) message += `<p><b>New Time:</b> ${time}</p>`;
+                    if (typeChanged) message += `<p><b>New Class Type:</b> ${newClassTypeName}</p>`;
+
+                    message += `<hr/><p>Refit Gym Team</p>`;
+
+                    const mailOptions = {
+                      from: `"Refit Gym" <${process.env.GMAIL_USER}>`,
+                      to: member.Email,
+                      subject: 'Refit Gym: Class Updated',
+                      html: message
+                    };
+                    try {
+                      await transporter.sendMail(mailOptions);
+                    } catch (emailErr) {
+                      console.error(`[MAIL ERROR] Failed to send to: ${member.Email}`, emailErr);
+                    }
+                  }));
+                }
+                res.json({ message: "Class updated and members notified." });
+              }
+            );
+          }
+        );
+      });
+    }
+  );
 });
 
-// CANCEL a class , send email to class members
+
+// CANCEL a class , send email to class members (with trainer name, date, time, type)
 router.delete('/class/:id', (req, res) => {
   const user = req.session.user;
   const classId = req.params.id;
@@ -329,64 +328,122 @@ router.delete('/class/:id', (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  db.query(
-    `SELECT mc.MemberID, u.Email, u.FirstName, u.LastName
-      FROM members_classes mc
-      JOIN users u ON mc.MemberID = u.UserID
-      WHERE mc.ClassID = ?`,
-    [classId],
-    async (err, members) => {
-      if (err) return res.status(500).json({ error: "Failed to get members" });
-
-      db.query(
-        `DELETE FROM classes WHERE ClassID = ? AND TrainerID = ?`,
-        [classId, user.UserID],
-        (err2, result) => {
-          if (err2) return res.status(500).json({ error: "Failed to delete class" });
-          if (result.affectedRows === 0) {
-            return res.status(404).json({ error: "Class not found or not yours" });
-          }
-          db.query(
-            `DELETE FROM members_classes WHERE ClassID = ?`,
-            [classId],
-            async (err3) => {
-              if (err3) console.error("Failed to clean up members_classes", err3);
-              await Promise.all(members.map(member => {
-                db.query(
-                  `UPDATE membership SET ClassAmount = ClassAmount + 1 WHERE UserID = ? ORDER BY EndDate DESC LIMIT 1`,
-                  [member.MemberID],
-                  (creditErr) => {
-                    if (creditErr) console.error("Failed to credit class for", member.MemberID, creditErr);
-                  }
-                );
-                const mailOptions = {
-                  from: `"Refit Gym" <${process.env.GMAIL_USER}>`,
-                  to: member.Email,
-                  subject: 'Refit Gym: Class Cancelled',
-                  html: `
-                    <h2>Hello ${member.FirstName} ${member.LastName},</h2>
-                    <p>We apologize, but your scheduled class has been <b>cancelled</b> by the trainer.</p>
-                    <ul>
-                      <li>You have received <b>1 free class</b> as compensation.</li>
-                    </ul>
-                    <p>Check your dashboard for other available classes.</p>
-                    <hr/>
-                    <p>Refit Gym Team</p>
-                  `
-                };
-                const transporter = getTransporter();
-                return transporter.sendMail(mailOptions).catch(emailErr => {
-                  console.error("Email failed for", member.Email, emailErr);
-                });
-              }));
-              res.json({ message: "Class deleted, members notified and credited." });
-            }
-          );
-        }
-      );
+  // 1) Fetch class details (type, date, time, trainer name) and verify ownership
+  const sqlClassInfo = `
+    SELECT 
+      c.ClassID,
+      c.Schedule,
+      c.time,
+      ct.type AS ClassTypeName,
+      t.FirstName AS TrainerFirstName,
+      t.LastName  AS TrainerLastName
+    FROM classes c
+    JOIN class_types ct ON c.ClassType = ct.id
+    JOIN users t ON c.TrainerID = t.UserID
+    WHERE c.ClassID = ? AND c.TrainerID = ?
+    LIMIT 1
+  `;
+  db.query(sqlClassInfo, [classId, user.UserID], (errInfo, rowsInfo) => {
+    if (errInfo) return res.status(500).json({ error: "Failed to fetch class details" });
+    if (!rowsInfo || !rowsInfo.length) {
+      return res.status(404).json({ error: "Class not found or not yours" });
     }
-  );
+
+    const cls = rowsInfo[0];
+    const classDate = cls.Schedule ? new Date(cls.Schedule).toLocaleDateString("en-GB") : "N/A";
+    const classTime = cls.time ? String(cls.time).slice(0, 5) : "N/A";
+    const classType = cls.ClassTypeName || "Class";
+    const trainerFullName = `${cls.TrainerFirstName || ""} ${cls.TrainerLastName || ""}`.trim() || "Trainer";
+
+    // 2) Get all members booked to this class
+    db.query(
+      `SELECT mc.MemberID, u.Email, u.FirstName, u.LastName
+         FROM members_classes mc
+         JOIN users u ON mc.MemberID = u.UserID
+       WHERE mc.ClassID = ?`,
+      [classId],
+      async (errMembers, members) => {
+        if (errMembers) return res.status(500).json({ error: "Failed to get members" });
+
+        // 3) Delete the class (ownership already verified)
+        db.query(
+          `DELETE FROM classes WHERE ClassID = ? AND TrainerID = ?`,
+          [classId, user.UserID],
+          (errDel, result) => {
+            if (errDel) return res.status(500).json({ error: "Failed to delete class" });
+            if (result.affectedRows === 0) {
+              return res.status(404).json({ error: "Class not found or not yours" });
+            }
+
+            // 4) Cleanup members_classes rows
+            db.query(
+              `DELETE FROM members_classes WHERE ClassID = ?`,
+              [classId],
+              async (errCleanup) => {
+                if (errCleanup) console.error("Failed to clean up members_classes", errCleanup);
+
+                // 5) Credit back + email each member with full context
+                const transporter = getTransporter();
+                await Promise.all(
+                  (members || []).map(member => {
+                    // Credit back 1 class
+                    db.query(
+                      `UPDATE membership
+                         SET ClassAmount = ClassAmount + 1
+                       WHERE UserID = ?
+                       ORDER BY EndDate DESC
+                       LIMIT 1`,
+                      [member.MemberID],
+                      (creditErr) => {
+                        if (creditErr) {
+                          console.error("Failed to credit class for", member.MemberID, creditErr);
+                        }
+                      }
+                    );
+
+                    // Build a detailed email
+                    const subject = `Refit Gym: ${classType} on ${classDate} at ${classTime} was cancelled`;
+                    const html = `
+                      <h2>Hello ${member.FirstName} ${member.LastName},</h2>
+                      <p>We’re sorry — the class you booked has been <b>cancelled</b> by the trainer.</p>
+                      <ul>
+                        <li><strong>Trainer:</strong> ${trainerFullName}</li>
+                        <li><strong>Class Type:</strong> ${classType}</li>
+                        <li><strong>Date:</strong> ${classDate}</li>
+                        <li><strong>Time:</strong> ${classTime}</li>
+                      </ul>
+                      <p>You have received <b>1 class credit</b> back to your membership.</p>
+                      <p>Please check your dashboard for other available classes.</p>
+                      <hr/>
+                      <p>Refit Gym Team</p>
+                    `;
+
+                    const mailOptions = {
+                      from: `"Refit Gym" <${process.env.GMAIL_USER}>`,
+                      to: member.Email,
+                      subject,
+                      html
+                    };
+
+                    return transporter.sendMail(mailOptions).catch(emailErr => {
+                      console.error("Email failed for", member.Email, emailErr);
+                    });
+                  })
+                );
+
+                // 6) Respond
+                res.json({
+                  message: "Class deleted, members notified (with trainer/date/time/type) and credited."
+                });
+              }
+            );
+          }
+        );
+      }
+    );
+  });
 });
+
 
 // GET all classes with their members for trainer
 // routes/trainer.js (replace your /classes-with-members route with this)
