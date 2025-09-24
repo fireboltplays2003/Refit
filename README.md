@@ -88,5 +88,6 @@ Update your PayPal client ID and secret in the backend .env file.
 
 👥 Contributors
 @fireboltplays2003 – Backend, DB, PayPal integration
+<img width="2558" height="1237" alt="image" src="https://github.com/user-attachments/assets/94887e04-cbe2-4905-b97c-d005e0cdb63c" />
 
 @eliasthedab17 – Frontend, UI/UX, Class management
