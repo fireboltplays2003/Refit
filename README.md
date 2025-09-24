@@ -74,12 +74,9 @@ Update .env with your MySQL credentials
 This system uses PayPal Sandbox for test transactions.
 Update your PayPal client ID and secret in the backend .env file.
 
-📸 Screenshots
-Paste your images here like this:
+## 📸 Screenshots
 
-markdown
-Copy code
-### Trainer View
+### Admin View
 ![Admin View](adminview.png)
 
 ### Trainer View
@@ -87,4 +84,5 @@ Copy code
 
 ### Member View
 ![Member View](member.png)
+
 
